@@ -17,16 +17,19 @@ namespace NorthPole
         private string startpage = "http://www.bing.com/";
 
         private Random random;
-        private bool stop;
-        private int mystartingRP; // starting reward points counter (how many points did we start at)
-        private int mycurrentRP; // current reward points counter
-        private int mycurrentdailyPCRP; // current daily PC search reward points counter (how many points left to earn in the day)
-        private int mydailymaxPCRP; // max daily PC search reward points
-        private int mytotaldailysearchcount; // total searches needed to get max reward points for the day
-        private int mycurrentsearchcount; // current total searches so far
+        private bool STOPBOT;
+
+        private int TOTAL_SESSION_POINTS_EARNED_STATS;
+        private int TOTAL_SESSION_SEARCHES_STATS;
+        private int TOTAL_RP_LTE;
+
+        private int STARTING_RP_COUNT_ACTUAL; // starting reward points counter (how many points did we start at)
+        private int STARTING_PC_RP_COUNT;
+        private int CURRENT_RP_COUNT_ACTUAL; // current reward points counter
+        private int DAILY_MAX_PC_RP; // max daily PC search reward points
         private int checkRPcount_counter; // counter for checking our rewards points so far
         private const int SEARCHTOPOINTRATIO = 3; // bing says 3 searchs = 1 point
-        private const int CHECKRPCOUNT = 15; // we will check our RPs count every 20 searches
+
 
         public BingBot()
         {
@@ -34,13 +37,14 @@ namespace NorthPole
         }
         public virtual void StartBot()
         {
-            stop = false;
-            mystartingRP = -1;
-            mycurrentRP = -1;
-            mycurrentdailyPCRP = -1;
-            mydailymaxPCRP = -1;
-            mytotaldailysearchcount = -1;
-            mycurrentsearchcount = 0;
+            TOTAL_SESSION_POINTS_EARNED_STATS = 0;
+            TOTAL_SESSION_SEARCHES_STATS = 0;
+            TOTAL_RP_LTE = -1;
+            STOPBOT = false;
+            STARTING_RP_COUNT_ACTUAL = -1;
+            CURRENT_RP_COUNT_ACTUAL = -1;
+            STARTING_PC_RP_COUNT = -1;
+            DAILY_MAX_PC_RP = -1;
             checkRPcount_counter = 0;
             Console.WriteLine("BingBot is starting.");
             Console.WriteLine("Loading wordlist...");
@@ -63,6 +67,7 @@ namespace NorthPole
                 Debug.WriteLine(msg);
                 Abort(404);
             }
+            STARTING_RP_COUNT_ACTUAL = CURRENT_RP_COUNT_ACTUAL;
             if (!SetDailyMaxPoints(driver))
             {
                 string msg = "Could not set daily max points, Aborting.";
@@ -70,44 +75,47 @@ namespace NorthPole
                 Debug.WriteLine(msg);
                 Abort(404);
             }
-            mystartingRP = mycurrentdailyPCRP;
-            Console.WriteLine("Todays current daily PC search points: " + mycurrentdailyPCRP);
-            Console.WriteLine("Todays daily max PC search points: " + mydailymaxPCRP);
-            Console.WriteLine("Total searchs for today: " + mytotaldailysearchcount);
+            Console.WriteLine("Todays daily PC search points: " + STARTING_PC_RP_COUNT + " out of " + DAILY_MAX_PC_RP);
             Console.WriteLine("BingBot is returning to " + startpage);
             driver.Navigate().GoToUrl(startpage);
             Wait();
+
             //start botting!
             Console.WriteLine("Starting search loop.");
             bool relatedsearchresult = true;
 
-            //refactor
-            while (mycurrentsearchcount < mytotaldailysearchcount && !stop)
+            while (!STOPBOT)
             {
                 DoSearch(driver, searchList);
                 checkRPcount_counter++;
-                relatedsearchresult = doRelatedSearch(driver);
-                while (relatedsearchresult && mycurrentsearchcount < mytotaldailysearchcount && !stop)
+                if (relatedsearchresult = doRelatedSearch(driver))
                 {
-                    if (checkRPcount_counter > CHECKRPCOUNT)
+                    checkRPcount_counter++;
+                }                         
+                
+                while (relatedsearchresult && !STOPBOT)
+                {
+                    // do a check
+                    if (checkRPcount_counter > TOTAL_RP_LTE * 2)
                     {
-                        CheckRPCount(driver);
+                        CalRP_LTE(driver);
                         checkRPcount_counter = 0;
                     }
-                    relatedsearchresult = doRelatedSearch(driver);
-                    checkRPcount_counter++;
-                }
-                if (checkRPcount_counter > CHECKRPCOUNT)
-                {
-                    CheckRPCount(driver);
-                    checkRPcount_counter = 0;
-                }
-                
+
+                    if (relatedsearchresult = doRelatedSearch(driver))
+                    {
+                        checkRPcount_counter++;
+                    }  
+                }               
             }
 
 
             //TODO: add check
-            CheckRPCount(driver);
+            Console.WriteLine("searching complete.");
+            Console.WriteLine("Todays daily PC search points: " + STARTING_PC_RP_COUNT + " out of " + DAILY_MAX_PC_RP);
+            CalRP_LTE(driver);
+            Console.WriteLine("Total points earned: " + TOTAL_SESSION_POINTS_EARNED_STATS);
+            Console.WriteLine("Total searched performed: " + TOTAL_SESSION_SEARCHES_STATS);
             //TODO: remove readline()
             Console.ReadLine();
         }
@@ -170,19 +178,20 @@ namespace NorthPole
 
         public bool SetCurrentPoints(IWebDriver driver)
         {
-            //refactor
+            //TODO: add try/catch logic
             int cpoints;
             IWebElement rewardCount = driver.FindElement(By.Id("id_rc"));
             if (int.TryParse(rewardCount.Text.ToString(), out cpoints))
             {
-                mycurrentRP = cpoints;
+                CURRENT_RP_COUNT_ACTUAL = cpoints;
                 string msg = "Current Reward Points: ";
-                Console.WriteLine(msg + mycurrentRP);
-                Debug.WriteLine(msg + mycurrentRP);
+                Console.WriteLine(msg + CURRENT_RP_COUNT_ACTUAL);
+                Debug.WriteLine(msg + CURRENT_RP_COUNT_ACTUAL);
                 return true;
             }
             else
             {
+                //TODO: add retry and abort logic here
                 return false;
             }
         }
@@ -192,6 +201,8 @@ namespace NorthPole
             string maxSearchString = "";
             driver.Navigate().GoToUrl("http://www.bing.com/rewards/dashboard");
             Wait();
+            //TODO: add check for if max is already reached
+            // check for check mark icon
             var dashElements = driver.FindElements(By.ClassName("row"));
             foreach (var item in dashElements)
             {
@@ -220,7 +231,7 @@ namespace NorthPole
             searchBar.Clear();
             searchBar.SendKeys(randomSearchString);
             searchBar.SendKeys(Keys.Enter);
-            mycurrentsearchcount++;
+            TOTAL_SESSION_SEARCHES_STATS++;
             Wait();
         }
 
@@ -236,7 +247,7 @@ namespace NorthPole
                     var resultList = item.FindElements(By.TagName("a"));
                     Debug.WriteLine("found a related search");
                     resultList[random.Next(0, resultList.Count())].Click();
-                    mycurrentsearchcount++;
+                    TOTAL_SESSION_SEARCHES_STATS++;
                     result = true;
                     break;                    
                 }
@@ -294,9 +305,10 @@ namespace NorthPole
             }
             if (int.TryParse(startStr, out startNum) && int.TryParse(endStr, out endNum))
             {
-                mycurrentdailyPCRP = startNum;
-                mydailymaxPCRP = endNum;
-                mytotaldailysearchcount = (mydailymaxPCRP * SEARCHTOPOINTRATIO) - mycurrentdailyPCRP;
+                //TODO: break this into another function
+                STARTING_PC_RP_COUNT = startNum;
+                DAILY_MAX_PC_RP = endNum;
+                TOTAL_RP_LTE = DAILY_MAX_PC_RP - STARTING_PC_RP_COUNT;
                 return true;
             }
             else
@@ -321,17 +333,26 @@ namespace NorthPole
             return result;
         }
 
-        protected void CheckRPCount(IWebDriver driver)
+        protected void CalRP_LTE(IWebDriver driver)
         {
+
             if (SetCurrentPoints(driver))
             {
-                int pointsearned = mycurrentRP - mystartingRP;
-                Debug.WriteLine("points so far: " + pointsearned + " out of " + mydailymaxPCRP + " left.");
-                if (pointsearned > mydailymaxPCRP)
+                CalcRPEarned();
+                int total_dailypoints_so_far = STARTING_PC_RP_COUNT + (CURRENT_RP_COUNT_ACTUAL - STARTING_RP_COUNT_ACTUAL);
+                TOTAL_RP_LTE = DAILY_MAX_PC_RP - total_dailypoints_so_far;
+                Debug.WriteLine("points so far: " + total_dailypoints_so_far + " out of " + DAILY_MAX_PC_RP + ". " + TOTAL_RP_LTE +" rewards points left.");
+                if (total_dailypoints_so_far > DAILY_MAX_PC_RP || TOTAL_RP_LTE <= 0)
                 {
-                    stop = true;
+                    STOPBOT = true;
                 }
             }
+        }
+
+        protected void CalcRPEarned()
+        {
+            TOTAL_SESSION_POINTS_EARNED_STATS = CURRENT_RP_COUNT_ACTUAL - STARTING_RP_COUNT_ACTUAL;
+            Debug.WriteLine("Total Rewards Points Earned: " + TOTAL_SESSION_POINTS_EARNED_STATS);
         }
 
         protected string[] LoadFile(string path)
