@@ -12,9 +12,12 @@ namespace NorthPole
 {
     class BingBot
     {
-        private string username = "";
-        private string password = "";
-        private string startpage = "http://www.bing.com/";
+        protected string username = "";
+        protected string password = "";
+        protected string startpage = "http://www.bing.com/";
+
+        protected IWebDriver driver;
+        protected List<string> searchList;
 
         private Random random;
         private bool STOPBOT;
@@ -34,11 +37,12 @@ namespace NorthPole
         public BingBot()
         {
             random = new Random();
+            searchList = null;
+            TOTAL_SESSION_POINTS_EARNED_STATS = 0;
+            TOTAL_SESSION_SEARCHES_STATS = 0;
         }
         public virtual void StartBot()
         {
-            TOTAL_SESSION_POINTS_EARNED_STATS = 0;
-            TOTAL_SESSION_SEARCHES_STATS = 0;
             TOTAL_RP_LTE = -1;
             STOPBOT = false;
             STARTING_RP_COUNT_ACTUAL = -1;
@@ -46,17 +50,34 @@ namespace NorthPole
             STARTING_PC_RP_COUNT = -1;
             DAILY_MAX_PC_RP = -1;
             checkRPcount_counter = 0;
+
             Console.WriteLine("BingBot is starting.");
+
             Console.WriteLine("Loading wordlist...");
-            List<string> searchList = CreateSearchList();
+            if (!CreateSearchList())
+            {
+                return;
+            }
             Console.WriteLine("wordlist loaded. Word count: " + searchList.Count());
+            
             Console.WriteLine("BingBot is launching Firefox...");
-            IWebDriver driver = new FirefoxDriver();
-
+            try
+            {
+                driver = new FirefoxDriver();
+                driver.Navigate().GoToUrl(startpage);
+            }
+            catch (Exception e)
+            {
+                string msg = "Failed to load firefox";
+                Console.WriteLine(msg);
+                Console.WriteLine(e.Message);
+                return;
+            }
             Console.WriteLine("BingBot is going to " + startpage);
-            driver.Navigate().GoToUrl(startpage);
 
-            Console.WriteLine("BingBot is signing in...");
+            Console.WriteLine("BingBot is signing in as...");
+            Console.WriteLine("username: " + username);
+            Console.WriteLine("password: " + password);
             SignIn(driver);
 
             Console.WriteLine("Setting current & daily point count.");
@@ -65,7 +86,7 @@ namespace NorthPole
                 string msg = "Could not set current points, Aborting.";
                 Console.WriteLine(msg);
                 Debug.WriteLine(msg);
-                Abort(404);
+                return;
             }
             STARTING_RP_COUNT_ACTUAL = CURRENT_RP_COUNT_ACTUAL;
             if (!SetDailyMaxPoints(driver))
@@ -73,7 +94,7 @@ namespace NorthPole
                 string msg = "Could not set daily max points, Aborting.";
                 Console.WriteLine(msg);
                 Debug.WriteLine(msg);
-                Abort(404);
+                return;
             }
             Console.WriteLine("Todays daily PC search points: " + STARTING_PC_RP_COUNT + " out of " + DAILY_MAX_PC_RP);
             Console.WriteLine("BingBot is returning to " + startpage);
@@ -112,45 +133,18 @@ namespace NorthPole
 
             //TODO: add check
             Console.WriteLine("searching complete.");
-            Console.WriteLine("Todays daily PC search points: " + STARTING_PC_RP_COUNT + " out of " + DAILY_MAX_PC_RP);
             CalRP_LTE(driver);
+            Console.WriteLine("Todays daily PC search points: " + (STARTING_PC_RP_COUNT + (CURRENT_RP_COUNT_ACTUAL - STARTING_RP_COUNT_ACTUAL)) + " out of " + DAILY_MAX_PC_RP);
             Console.WriteLine("Total points earned: " + TOTAL_SESSION_POINTS_EARNED_STATS);
             Console.WriteLine("Total searched performed: " + TOTAL_SESSION_SEARCHES_STATS);
-            //TODO: remove readline()
-            Console.ReadLine();
+            return;
         }
 
         public void SignIn(IWebDriver driver)
         {
-            driver.FindElement(By.Id("id_l")).Click();
+            GetToSignInPage(driver);
             Wait();
-            IWebElement loginLinks = driver.FindElement(By.ClassName("b_idProvidersBottom"));
-            var loginLinkList = loginLinks.FindElements(By.ClassName("id_name"));
-
-            foreach (IWebElement item in loginLinkList)
-            {
-                if (item.Text.ToString() == "Microsoft account")
-                {
-                    item.Click();
-                    break;
-                }
-                else
-                {
-                    string msg = "Could not find 'Microsoft account' link, Aborting.";
-                    Console.WriteLine(msg);
-                    Debug.WriteLine(msg);
-                    Abort(404, driver);
-                }
-            }
-            loginLinks = null;
-            loginLinkList = null;
-            Wait();
-
-            IWebElement loginBox = driver.FindElement(By.Name("login"));
-            loginBox.SendKeys(username);
-            IWebElement passwordBox = driver.FindElement(By.Name("passwd"));
-            passwordBox.SendKeys(password);
-            driver.FindElement(By.Name("SI")).Click();
+            Login(driver);
             Wait();
 
             if (driver.Url.Equals(startpage))
@@ -178,9 +172,22 @@ namespace NorthPole
 
         public bool SetCurrentPoints(IWebDriver driver)
         {
-            //TODO: add try/catch logic
             int cpoints;
-            IWebElement rewardCount = driver.FindElement(By.Id("id_rc"));
+            IWebElement rewardCount = null;
+            if (!SetElementByID(driver, "id_rc", out rewardCount))
+            {
+                string emsg1 = "Unable to set current points.";
+                Console.WriteLine(emsg1);
+                Debug.WriteLine(emsg1);
+                Console.WriteLine("Retrying to set current points...");
+                if (!SetElementByID(driver, "id_rc", out rewardCount))
+                {
+                    string emsg2 = "Unable to set current points.";
+                    Console.WriteLine(emsg2);
+                    Debug.WriteLine(emsg2);
+                    return false;
+                }
+            }
             if (int.TryParse(rewardCount.Text.ToString(), out cpoints))
             {
                 CURRENT_RP_COUNT_ACTUAL = cpoints;
@@ -191,7 +198,9 @@ namespace NorthPole
             }
             else
             {
-                //TODO: add retry and abort logic here
+                string emsg = "Failed to parse reward points string.";
+                Console.WriteLine(emsg);
+                Debug.WriteLine(emsg);
                 return false;
             }
         }
@@ -317,20 +326,23 @@ namespace NorthPole
             }
         }
 
-        protected List<string> CreateSearchList()
+        protected bool CreateSearchList()
         {
-            List<string> result = new List<string>();
             try
             {
-                result = new List<string>(LoadFile(@"wordlist.txt"));
+                searchList = new List<string>(LoadFile(@"wordlist.txt"));
+                return true;
             }
             catch (Exception e)
             {
-                Console.WriteLine("failed to load worlist, Aborting.");
+                string emsg = "failed to load worlist, Aborting.";
+                Console.WriteLine(emsg);
                 Console.WriteLine(e.Message);
-                Abort(404);
+                Debug.WriteLine(emsg);
+                Debug.WriteLine(e.Message);
+                Debug.WriteLine(e.StackTrace);
+                return false;
             }
-            return result;
         }
 
         protected void CalRP_LTE(IWebDriver driver)
@@ -363,14 +375,17 @@ namespace NorthPole
 
         protected void Abort(int exitcode, IWebDriver driver)
         {
+            Console.WriteLine("Abort entered! exit " + exitcode + " *TESTCODE*");
+            Console.ReadLine();
             //driver.Quit();
-            Environment.Exit(exitcode);
+            //Environment.Exit(exitcode);
         }
 
         protected void Abort(int exitcode)
         {
-            //driver.Quit();
-            Environment.Exit(exitcode);
+            Console.WriteLine("Abort entered! exit " + exitcode + " *TESTCODE*");
+            Console.ReadLine();
+            //Environment.Exit(exitcode);
         }
 
         protected void Wait()
@@ -379,6 +394,134 @@ namespace NorthPole
             Console.WriteLine(msg);
             Debug.WriteLine(msg);
             System.Threading.Thread.Sleep(3000);
+        }
+
+        protected bool GetToSignInPage(IWebDriver driver)
+        {
+            try
+            {
+                driver.FindElement(By.Id("id_l")).Click();
+            }
+            catch (OpenQA.Selenium.NoSuchElementException e)
+            {
+                Console.WriteLine(e.Message);
+                Debug.WriteLine(e.Message);
+                Debug.WriteLine(e.StackTrace);
+                return false;
+            }
+            catch (Exception e)
+            {
+                string emsg = "Something horrible happened in getting to the login page";
+                Console.WriteLine(emsg);
+                Debug.WriteLine(emsg);
+                Debug.WriteLine(e.Message);
+                Debug.WriteLine(e.StackTrace);
+                return false;
+            }
+            Wait();
+            IWebElement loginLinks = null; // this bp?
+            try
+            {
+                loginLinks = driver.FindElement(By.ClassName("b_idProvidersBottom"));
+            }
+            catch (OpenQA.Selenium.NoSuchElementException e)
+            {
+                Console.WriteLine(e.Message);
+                Debug.WriteLine(e.Message);
+                Debug.WriteLine(e.StackTrace);
+                return false;
+            }
+            catch (Exception e)
+            {
+                string emsg = "Something horrible happened in getting to the login page";
+                Console.WriteLine(emsg);
+                Debug.WriteLine(emsg);
+                Debug.WriteLine(e.Message);
+                Debug.WriteLine(e.StackTrace);
+                return false;
+            }
+            var loginLinkList = loginLinks.FindElements(By.ClassName("id_name"));
+
+            foreach (IWebElement item in loginLinkList)
+            {
+                if (item.Text.ToString() == "Microsoft account")
+                {
+                    item.Click();
+                    return true;
+                }
+            }
+            string msg = "Could not find 'Microsoft account' link, Aborting.";
+            Console.WriteLine(msg);
+            Debug.WriteLine(msg);
+            return false;
+        }
+
+        protected bool Login(IWebDriver driver)
+        {
+            try
+            {
+                IWebElement loginBox = driver.FindElement(By.Name("login"));
+                loginBox.SendKeys(username);
+            }
+            catch (OpenQA.Selenium.NoSuchElementException e)
+            {
+                Console.WriteLine(e.Message);
+                Debug.WriteLine(e.Message);
+                Debug.WriteLine(e.StackTrace);
+                return false;
+            }
+            catch (Exception e)
+            {
+                string emsg = "Unable send keys for login";
+                Console.WriteLine(emsg);
+                Debug.WriteLine(emsg);
+                Debug.WriteLine(e.Message);
+                Debug.WriteLine(e.StackTrace);
+                return false;
+            }
+
+            try
+            {
+                IWebElement passwordBox = driver.FindElement(By.Name("passwd"));
+                passwordBox.SendKeys(password);
+                driver.FindElement(By.Name("SI")).Click();
+            }
+            catch (OpenQA.Selenium.NoSuchElementException e)
+            {
+                Console.WriteLine(e.Message);
+                Debug.WriteLine(e.Message);
+                Debug.WriteLine(e.StackTrace);
+                return false;
+            }
+            catch (Exception e)
+            {
+                string emsg = "Unable send keys for password";
+                Console.WriteLine(emsg);
+                Debug.WriteLine(emsg);
+                Debug.WriteLine(e.Message);
+                Debug.WriteLine(e.StackTrace);
+                return false;
+            }
+            return true;
+        }
+
+        protected bool SetElementByID(IWebDriver driver, string id, out IWebElement element)
+        {
+            try
+            {
+                element = driver.FindElement(By.Id(id));
+                return true;
+            }
+            catch (Exception e)
+            {
+                element = null;
+                string emsg = "Unable to find element id " + id;
+                Console.WriteLine(emsg);
+                Debug.WriteLine(emsg);
+                Debug.WriteLine(e.Message);
+                Debug.WriteLine(e.StackTrace);
+                return false;
+            }
         }
     }
 }

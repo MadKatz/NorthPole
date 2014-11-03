@@ -11,18 +11,40 @@ namespace NorthPole
 {
     class TestBot : BingBot
     {
+        private IWebDriver driver;
         public override void StartBot()
         {
-            Console.WriteLine("BingBot is starting.");
-            IWebDriver driver = new FirefoxDriver();
 
-            Console.WriteLine("BingBot is going to " + "http://www.bing.com/");
-            driver.Navigate().GoToUrl("http://www.bing.com/");
+            Console.WriteLine("TestBot is starting.");
+
+            Console.WriteLine("Loading wordlist...");
+            if (!CreateSearchList())
+            {
+                return;
+            }
+            Console.WriteLine("wordlist loaded. Word count: " + searchList.Count());
+
+            Console.WriteLine("TestBot is launching Firefox...");
+            try
+            {
+                driver = new FirefoxDriver();
+                driver.Navigate().GoToUrl(startpage);
+            }
+            catch (Exception e)
+            {
+                string msg = "Failed to load firefox";
+                Console.WriteLine(msg);
+                Console.WriteLine(e.Message);
+                return;
+            }
+            Console.WriteLine("TestBot is going to " + startpage);
+
+            Console.WriteLine("TestBot is signing in as...");
+            Console.WriteLine("username: " + username);
+            Console.WriteLine("password: " + password);
 
             SignIn(driver);
-            SetDailyMaxPoints(driver);
-            //TODO: remove readline()
-            Console.ReadLine();
+            SetCurrentPoints(driver);
         }
     }
 }
