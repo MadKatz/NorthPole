@@ -14,7 +14,7 @@ namespace NorthPole
         private IWebDriver driver;
         public override void StartBot()
         {
-
+            driver = null;
             Console.WriteLine("TestBot is starting.");
 
             Console.WriteLine("Loading wordlist...");
@@ -27,8 +27,10 @@ namespace NorthPole
             Console.WriteLine("TestBot is launching Firefox...");
             try
             {
-                driver = new FirefoxDriver();
-                driver.Navigate().GoToUrl(startpage);
+                FirefoxProfile profile = new FirefoxProfile();
+                profile.SetPreference("general.useragent.override", "User-Agent: Mozilla/5.0 (Linux; U; Android 2.2; en-us; LG-P500 Build/FRF91) AppleWebKit/533.0 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1");
+                driver = new FirefoxDriver(profile);
+                driver.Navigate().GoToUrl(homepage);
             }
             catch (Exception e)
             {
@@ -37,7 +39,7 @@ namespace NorthPole
                 Console.WriteLine(e.Message);
                 return;
             }
-            Console.WriteLine("TestBot is going to " + startpage);
+            Console.WriteLine("TestBot is going to " + homepage);
 
             Console.WriteLine("TestBot is signing in as...");
             Console.WriteLine("username: " + username);
@@ -45,6 +47,11 @@ namespace NorthPole
 
             SignIn(driver);
             SetCurrentPoints(driver);
+            DoSearch(driver, searchList);
+            DoSearch(driver, searchList);
+            DoSearch(driver, searchList);
+            DoSearch(driver, searchList);
+            DoSearch(driver, searchList);
         }
     }
 }

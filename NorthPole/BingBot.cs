@@ -14,7 +14,8 @@ namespace NorthPole
     {
         protected string username = "";
         protected string password = "";
-        protected string startpage = "http://www.bing.com/";
+        protected string homepage = "http://www.bing.com/";
+        protected string dashboardURL = "rewards/dashboard";
 
         protected IWebDriver driver;
         protected List<string> searchList;
@@ -64,7 +65,7 @@ namespace NorthPole
             try
             {
                 driver = new FirefoxDriver();
-                driver.Navigate().GoToUrl(startpage);
+                driver.Navigate().GoToUrl(homepage);
             }
             catch (Exception e)
             {
@@ -73,7 +74,7 @@ namespace NorthPole
                 Console.WriteLine(e.Message);
                 return;
             }
-            Console.WriteLine("BingBot is going to " + startpage);
+            Console.WriteLine("BingBot is going to " + homepage);
 
             Console.WriteLine("BingBot is signing in as...");
             Console.WriteLine("username: " + username);
@@ -97,8 +98,8 @@ namespace NorthPole
                 return;
             }
             Console.WriteLine("Todays daily PC search points: " + STARTING_PC_RP_COUNT + " out of " + DAILY_MAX_PC_RP);
-            Console.WriteLine("BingBot is returning to " + startpage);
-            driver.Navigate().GoToUrl(startpage);
+            Console.WriteLine("BingBot is returning to " + homepage);
+            driver.Navigate().GoToUrl(homepage);
             Wait();
 
             //start botting!
@@ -137,6 +138,7 @@ namespace NorthPole
             Console.WriteLine("Todays daily PC search points: " + (STARTING_PC_RP_COUNT + (CURRENT_RP_COUNT_ACTUAL - STARTING_RP_COUNT_ACTUAL)) + " out of " + DAILY_MAX_PC_RP);
             Console.WriteLine("Total points earned: " + TOTAL_SESSION_POINTS_EARNED_STATS);
             Console.WriteLine("Total searched performed: " + TOTAL_SESSION_SEARCHES_STATS);
+            driver.Quit();
             return;
         }
 
@@ -147,7 +149,7 @@ namespace NorthPole
             Login(driver);
             Wait();
 
-            if (driver.Url.Equals(startpage))
+            if (driver.Url.Equals(homepage))
             {
                 string msg = "login successfull.";
                 Console.WriteLine(msg);
@@ -246,6 +248,7 @@ namespace NorthPole
 
         public bool doRelatedSearch(IWebDriver driver)
         {
+            //put in logic for webelement timeout ( WebDriverExpection )
             bool result = false;
             IWebElement context = driver.FindElement(By.Id("b_context"));
             var contextList = context.FindElements(By.ClassName("b_ans"));
@@ -253,6 +256,7 @@ namespace NorthPole
             {
                 if (item.Text.Contains("Related searches"))
                 {
+                    //bug need to check collection first
                     var resultList = item.FindElements(By.TagName("a"));
                     Debug.WriteLine("found a related search");
                     resultList[random.Next(0, resultList.Count())].Click();
