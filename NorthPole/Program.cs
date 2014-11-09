@@ -31,6 +31,7 @@ namespace NorthPole
             {
                 //TestBot bot1 = new TestBot();
                 BingBot bot1 = new BingBot();
+                bot1.StartBot(false);
                 bot1.StartBot(true);
                 Console.WriteLine("Searching complete.");
                 Console.ReadLine();
