@@ -29,9 +29,9 @@ namespace NorthPole
             }
             else if (input == "1")
             {
-                //TestBot bot = new TestBot();
-                BingBot bot = new BingBot();
-                bot.StartBot();
+                //TestBot bot1 = new TestBot();
+                BingBot bot1 = new BingBot();
+                bot1.StartBot(true);
                 Console.WriteLine("Searching complete.");
                 Console.ReadLine();
             }

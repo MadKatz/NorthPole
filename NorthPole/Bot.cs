@@ -22,6 +22,10 @@ namespace NorthPole
             Console.WriteLine(e.Message);
             Console.WriteLine(e.StackTrace);
         }
+        protected void LogError(string str)
+        {
+            Console.WriteLine(str);
+        }
         protected bool LoadFireFox(out IWebDriver driver)
         {
             try
@@ -33,6 +37,37 @@ namespace NorthPole
             {
                 driver = null;
                 string msg = "Failed to load firefox";
+                LogError(msg, e);
+                return false;
+            }
+        }
+        protected bool LoadFireFox(string agent, out IWebDriver driver)
+        {
+            FirefoxProfile profile = new FirefoxProfile();
+            profile.SetPreference("general.useragent.override", agent);
+            try
+            {
+                driver = new FirefoxDriver(profile);
+                return true;
+            }
+            catch (Exception e)
+            {
+                driver = null;
+                string msg = "Failed to load firefox";
+                LogError(msg, e);
+                return false;
+            }
+        }
+        protected bool MaximizeWindow(IWebDriver driver)
+        {
+            try
+            {
+                driver.Manage().Window.Maximize();
+                return true;
+            }
+            catch (Exception e)
+            {
+                string msg = "Failed to fetch the webdriver. Did firefox close?";
                 LogError(msg, e);
                 return false;
             }
@@ -52,11 +87,12 @@ namespace NorthPole
                 return false;
             }
         }
-        protected bool LoadFile(string path, out string[] file)
+        protected bool LoadFile(string path, out List<string> file)
         {
             try
             {
-                file = File.ReadAllLines(path);
+                string[] temp = File.ReadAllLines(path);
+                file = new List<string>(temp);
                 return true;
             }
             catch (Exception e)
@@ -125,6 +161,21 @@ namespace NorthPole
                 return false;
             }
         }
+        protected bool SetElementByTagName(IWebDriver driver, string tname, out IWebElement element)
+        {
+            try
+            {
+                element = driver.FindElement(By.TagName(tname));
+                return true;
+            }
+            catch (Exception e)
+            {
+                element = null;
+                string msg = "Unable to find element by Name " + tname;
+                LogError(msg, e);
+                return false;
+            }
+        }
         protected bool SetElementByClassName(IWebDriver driver, string cname, out IWebElement element)
         {
             try
@@ -144,7 +195,7 @@ namespace NorthPole
         {
             try
             {
-                elements = driver.FindElements(By.Name(cname));
+                elements = driver.FindElements(By.ClassName(cname));
                 return true;
             }
             catch (Exception e)

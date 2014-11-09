@@ -11,47 +11,53 @@ namespace NorthPole
 {
     class TestBot : BingBot
     {
-        private IWebDriver driver;
-        public override void StartBot()
+        public override void StartBot(bool domobile)
         {
+            IWebDriver driver = null;
+            mobile = domobile;
+            Console.WriteLine("Mobile searching set to " + mobile.ToString());
+            if (mobile)
+            {
+                agentString = mobileAgent;
+            }
+            else
+            {
+                agentString = desktopAgent;
+            }
             driver = null;
             Console.WriteLine("TestBot is starting.");
 
             Console.WriteLine("Loading wordlist...");
-            if (!CreateSearchList())
+            if (!LoadFile(@"wordlist.txt", out searchList))
             {
                 return;
             }
             Console.WriteLine("wordlist loaded. Word count: " + searchList.Count());
 
             Console.WriteLine("TestBot is launching Firefox...");
-            try
+            if (!LoadFireFox(agentString, out driver))
             {
-                FirefoxProfile profile = new FirefoxProfile();
-                profile.SetPreference("general.useragent.override", "User-Agent: Mozilla/5.0 (Linux; U; Android 2.2; en-us; LG-P500 Build/FRF91) AppleWebKit/533.0 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1");
-                driver = new FirefoxDriver(profile);
-                driver.Navigate().GoToUrl(homepage);
-            }
-            catch (Exception e)
-            {
-                string msg = "Failed to load firefox";
-                Console.WriteLine(msg);
-                Console.WriteLine(e.Message);
                 return;
             }
-            Console.WriteLine("TestBot is going to " + homepage);
+            if (!GoToURL(driver, homepage + signinURL))
+            {
+                return;
+            }
+            Console.WriteLine("TestBot is going to " + homepage + signinURL);
 
             Console.WriteLine("TestBot is signing in as...");
             Console.WriteLine("username: " + username);
             Console.WriteLine("password: " + password);
 
             SignIn(driver);
-            SetCurrentPoints(driver);
+            //SetCurrentPoints(driver);
+            driver.Navigate().GoToUrl(homepage);
             DoSearch(driver, searchList);
-            DoSearch(driver, searchList);
-            DoSearch(driver, searchList);
-            DoSearch(driver, searchList);
-            DoSearch(driver, searchList);
+            doRelatedSearch(driver);
+            //DoSearch(driver, searchList);
+            //DoSearch(driver, searchList);
+            //DoSearch(driver, searchList);
+            //DoSearch(driver, searchList);
         }
     }
 }

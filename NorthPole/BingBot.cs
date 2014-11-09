@@ -2,191 +2,214 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.IO;
 using System.Threading.Tasks;
-using System.Diagnostics;
 using OpenQA.Selenium;
+using OpenQA.Selenium.Interactions;
 using OpenQA.Selenium.Firefox;
 
 namespace NorthPole
 {
-    class BingBot
+    class BingBot : Bot
     {
-        protected string username = "";
+        public string username = "";
         protected string password = "";
         protected string homepage = "http://www.bing.com/";
+        protected string signinURL = "rewards/signin";
         protected string dashboardURL = "rewards/dashboard";
+        protected string desktopAgent = "Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko";
+        protected string mobileAgent = "Mozilla/5.0 (Linux; U; Android 2.2; en-us; LG-P500 Build/FRF91) AppleWebKit/533.0 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1";
+        protected string agentString;
 
-        protected IWebDriver driver;
         protected List<string> searchList;
 
         private Random random;
         private bool STOPBOT;
+        protected bool mobile;
 
         private int TOTAL_SESSION_POINTS_EARNED_STATS;
         private int TOTAL_SESSION_SEARCHES_STATS;
         private int TOTAL_RP_LTE;
 
         private int STARTING_RP_COUNT_ACTUAL; // starting reward points counter (how many points did we start at)
-        private int STARTING_PC_RP_COUNT;
+        private int STARTING_SEARCH_RP_COUNT;
         private int CURRENT_RP_COUNT_ACTUAL; // current reward points counter
-        private int DAILY_MAX_PC_RP; // max daily PC search reward points
+        private int DAILY_MAX_SEARCH_RP; // max daily PC search reward points
         private int checkRPcount_counter; // counter for checking our rewards points so far
-        private const int SEARCHTOPOINTRATIO = 3; // bing says 3 searchs = 1 point
+        private const int MOBILESEARCHTOPOINTRATIO = 3;
+        private const int DESKTOPSEARCHTOPOINTRATIO = 2;
 
 
         public BingBot()
         {
             random = new Random();
             searchList = null;
+            mobile = false;
             TOTAL_SESSION_POINTS_EARNED_STATS = 0;
             TOTAL_SESSION_SEARCHES_STATS = 0;
         }
-        public virtual void StartBot()
+        public virtual void StartBot(bool domobile)
         {
+            IWebDriver driver = null;
+            mobile = domobile;
+            Console.WriteLine("Mobile searching set to " + mobile.ToString());
+            if (mobile)
+            {
+                agentString = mobileAgent;
+            }
+            else
+            {
+                agentString = desktopAgent;
+            }
             TOTAL_RP_LTE = -1;
             STOPBOT = false;
             STARTING_RP_COUNT_ACTUAL = -1;
             CURRENT_RP_COUNT_ACTUAL = -1;
-            STARTING_PC_RP_COUNT = -1;
-            DAILY_MAX_PC_RP = -1;
+            STARTING_SEARCH_RP_COUNT = -1;
+            DAILY_MAX_SEARCH_RP = -1;
             checkRPcount_counter = 0;
 
             Console.WriteLine("BingBot is starting.");
 
             Console.WriteLine("Loading wordlist...");
-            if (!CreateSearchList())
+            if (!LoadFile(@"wordlist.txt", out searchList))
             {
+                Console.Write("Failed to load wordlist, aborting.");
                 return;
             }
             Console.WriteLine("wordlist loaded. Word count: " + searchList.Count());
             
             Console.WriteLine("BingBot is launching Firefox...");
-            try
+            if (!LoadFireFox(agentString, out driver))
             {
-                driver = new FirefoxDriver();
-                driver.Navigate().GoToUrl(homepage);
-            }
-            catch (Exception e)
-            {
-                string msg = "Failed to load firefox";
-                Console.WriteLine(msg);
-                Console.WriteLine(e.Message);
                 return;
             }
-            Console.WriteLine("BingBot is going to " + homepage);
-
+            if (!GoToURL(driver, homepage + signinURL))
+            {
+                return;
+            }
+            //hack for mobile related searching
+            if (true)
+            {
+                if (!MaximizeWindow(driver))
+                {
+                    return;
+                }
+            }
+            //endhack
+            Console.WriteLine("BingBot is going to " + homepage + signinURL);
             Console.WriteLine("BingBot is signing in as...");
             Console.WriteLine("username: " + username);
             Console.WriteLine("password: " + password);
-            SignIn(driver);
+            if (!SignIn(driver))
+            {
+                return;
+            }
 
             Console.WriteLine("Setting current & daily point count.");
             if (!SetCurrentPoints(driver))
             {
                 string msg = "Could not set current points, Aborting.";
-                Console.WriteLine(msg);
-                Debug.WriteLine(msg);
+                LogError(msg);
                 return;
             }
             STARTING_RP_COUNT_ACTUAL = CURRENT_RP_COUNT_ACTUAL;
             if (!SetDailyMaxPoints(driver))
             {
                 string msg = "Could not set daily max points, Aborting.";
-                Console.WriteLine(msg);
-                Debug.WriteLine(msg);
+                LogError(msg);
                 return;
             }
-            Console.WriteLine("Todays daily PC search points: " + STARTING_PC_RP_COUNT + " out of " + DAILY_MAX_PC_RP);
+            if (mobile)
+            {
+                Console.WriteLine("Todays daily Mobile search points: " + STARTING_SEARCH_RP_COUNT + " out of " + DAILY_MAX_SEARCH_RP);
+            }
+            else
+            {
+                Console.WriteLine("Todays daily PC search points: " + STARTING_SEARCH_RP_COUNT + " out of " + DAILY_MAX_SEARCH_RP);
+            }
             Console.WriteLine("BingBot is returning to " + homepage);
-            driver.Navigate().GoToUrl(homepage);
+            if (!GoToURL(driver, homepage))
+            {
+                return;
+            }
             Wait();
 
             //start botting!
             Console.WriteLine("Starting search loop.");
-            bool relatedsearchresult = true;
-
-            while (!STOPBOT)
-            {
-                DoSearch(driver, searchList);
-                checkRPcount_counter++;
-                if (relatedsearchresult = doRelatedSearch(driver))
-                {
-                    checkRPcount_counter++;
-                }                         
-                
-                while (relatedsearchresult && !STOPBOT)
-                {
-                    // do a check
-                    if (checkRPcount_counter > TOTAL_RP_LTE * 2)
-                    {
-                        CalRP_LTE(driver);
-                        checkRPcount_counter = 0;
-                    }
-
-                    if (relatedsearchresult = doRelatedSearch(driver))
-                    {
-                        checkRPcount_counter++;
-                    }  
-                }               
-            }
-
+            doSearchLoop(driver);
 
             //TODO: add check
             Console.WriteLine("searching complete.");
             CalRP_LTE(driver);
-            Console.WriteLine("Todays daily PC search points: " + (STARTING_PC_RP_COUNT + (CURRENT_RP_COUNT_ACTUAL - STARTING_RP_COUNT_ACTUAL)) + " out of " + DAILY_MAX_PC_RP);
+            if (mobile)
+            {
+                Console.WriteLine("Todays daily Mobile search points: " + (STARTING_SEARCH_RP_COUNT + (CURRENT_RP_COUNT_ACTUAL - STARTING_RP_COUNT_ACTUAL)) + " out of " + DAILY_MAX_SEARCH_RP);
+            }
+            else
+            {
+                Console.WriteLine("Todays daily PC search points: " + (STARTING_SEARCH_RP_COUNT + (CURRENT_RP_COUNT_ACTUAL - STARTING_RP_COUNT_ACTUAL)) + " out of " + DAILY_MAX_SEARCH_RP);
+            }
             Console.WriteLine("Total points earned: " + TOTAL_SESSION_POINTS_EARNED_STATS);
             Console.WriteLine("Total searched performed: " + TOTAL_SESSION_SEARCHES_STATS);
             driver.Quit();
             return;
         }
 
-        public void SignIn(IWebDriver driver)
+        public bool SignIn(IWebDriver driver)
         {
-            GetToSignInPage(driver);
-            Wait();
-            Login(driver);
-            Wait();
-
-            if (driver.Url.Equals(homepage))
+            if (mobile)
             {
-                string msg = "login successfull.";
-                Console.WriteLine(msg);
-                Debug.WriteLine(msg);
-            }
-            else if (driver.Title.Equals("Sign in to your Microsoft account"))
-            {
-                //Need to test this path
-                string msg = "login failed. Aborting.";
-                Console.WriteLine(msg);
-                Debug.WriteLine(msg);
-                Abort(500, driver);
+                GoToLoginPageMobile(driver);
             }
             else
             {
-                string msg = "Something unknown happened, Aborting.";
-                Console.WriteLine(msg);
-                Debug.WriteLine(msg);
-                Abort(404, driver);
+                GoToLoginPageDesktop(driver);
+            }
+            Wait();
+            Login(driver);
+            Wait();
+            try
+            {
+                if (driver.Url.Equals("https://www.bing.com/" + dashboardURL))
+                {
+                    string msg = "login successfull.";
+                    LogError(msg);
+                    return true;
+                }
+                else if (driver.Title.Equals("Sign in to your Microsoft account"))
+                {
+                    string msg = "login failed. Aborting.";
+                    LogError(msg);
+                    return false;
+                }
+                else
+                {
+                    string msg = "Something unknown happened, Aborting.";
+                    LogError(msg);
+                    return false;
+                }
+            }
+            catch (Exception e)
+            {
+                LogError("Failed to grab driver.", e);
+                return false;
             }
         }
 
         public bool SetCurrentPoints(IWebDriver driver)
         {
+            //bug when doing mobile searching, id_rc may not be present
             int cpoints;
             IWebElement rewardCount = null;
             if (!SetElementByID(driver, "id_rc", out rewardCount))
             {
                 string emsg1 = "Unable to set current points.";
-                Console.WriteLine(emsg1);
-                Debug.WriteLine(emsg1);
+                LogError(emsg1);
                 Console.WriteLine("Retrying to set current points...");
                 if (!SetElementByID(driver, "id_rc", out rewardCount))
                 {
                     string emsg2 = "Unable to set current points.";
-                    Console.WriteLine(emsg2);
-                    Debug.WriteLine(emsg2);
+                    LogError(emsg2);
                     return false;
                 }
             }
@@ -195,34 +218,45 @@ namespace NorthPole
                 CURRENT_RP_COUNT_ACTUAL = cpoints;
                 string msg = "Current Reward Points: ";
                 Console.WriteLine(msg + CURRENT_RP_COUNT_ACTUAL);
-                Debug.WriteLine(msg + CURRENT_RP_COUNT_ACTUAL);
                 return true;
             }
             else
             {
                 string emsg = "Failed to parse reward points string.";
-                Console.WriteLine(emsg);
-                Debug.WriteLine(emsg);
+                LogError(emsg);
                 return false;
             }
         }
 
         public bool SetDailyMaxPoints(IWebDriver driver)
         {
+            string searchString = "";
+            if (mobile)
+            {
+                searchString = "Mobile search";
+            }
+            else
+            {
+                searchString = "PC search";
+            }
             string maxSearchString = "";
-            driver.Navigate().GoToUrl("http://www.bing.com/rewards/dashboard");
-            Wait();
             //TODO: add check for if max is already reached
             // check for check mark icon
-            var dashElements = driver.FindElements(By.ClassName("row"));
-            foreach (var item in dashElements)
+            System.Collections.ObjectModel.ReadOnlyCollection<IWebElement> elements;
+            SetElementsByClassName(driver, "row", out elements);
+            if (elements == null || elements.Count <= 0)
             {
-                if (item.Text.Contains("PC search"))
+                LogError("Failed to fetch rows from dashboard.");
+                return false;
+            }
+            foreach (var item in elements)
+            {
+                if (item.Text.Contains(searchString))
                 {
                     var rowElements = item.FindElements(By.TagName("li"));
                     foreach (var row in rowElements)
                     {
-                        if (row.Text.Contains("PC search"))
+                        if (row.Text.Contains(searchString))
                         {
                             maxSearchString = row.FindElement(By.ClassName("progress")).Text.ToString();
                             break;
@@ -233,33 +267,55 @@ namespace NorthPole
             return ParseMaxSearchString(maxSearchString);
         }
 
-        public void DoSearch(IWebDriver driver, List<string> searchList)
+        public bool DoSearch(IWebDriver driver, List<string> searchList)
         {
-            IWebElement searchBar = driver.FindElement(By.Id("sb_form_q"));
+            IWebElement searchBar;
+            if (!SetElementByID(driver, "sb_form_q", out searchBar))
+            {
+                return false;
+            }
             // update randomneess
             string randomSearchString = searchList[random.Next(0, searchList.Count())];
-            Debug.WriteLine("Performing search on: : " + randomSearchString);
-            searchBar.Clear();
-            searchBar.SendKeys(randomSearchString);
-            searchBar.SendKeys(Keys.Enter);
+            Console.WriteLine("Performing search on: : " + randomSearchString);
+            try
+            {
+                searchBar.Clear();
+                searchBar.SendKeys(randomSearchString);
+                searchBar.SendKeys(Keys.Enter);
+            }
+            catch (Exception e)
+            {
+                LogError("Failed to clear or send keys to searchbar element.", e);
+                return false;
+            }
             TOTAL_SESSION_SEARCHES_STATS++;
             Wait();
+            return true;
         }
 
         public bool doRelatedSearch(IWebDriver driver)
         {
             //put in logic for webelement timeout ( WebDriverExpection )
             bool result = false;
-            IWebElement context = driver.FindElement(By.Id("b_context"));
-            var contextList = context.FindElements(By.ClassName("b_ans"));
+            //for mobile
+            //try getting classname=rl_srch
+            //if empty try getting classname=b_rs
+            //
+            //bug need to check collection first
+            var contextList = driver.FindElements(By.ClassName("b_ans"));
             foreach (var item in contextList)
             {
                 if (item.Text.Contains("Related searches"))
                 {
                     //bug need to check collection first
                     var resultList = item.FindElements(By.TagName("a"));
-                    Debug.WriteLine("found a related search");
-                    resultList[random.Next(0, resultList.Count())].Click();
+                    Console.WriteLine("found a related search");
+                    int rndlink = random.Next(0, resultList.Count());
+                    //Bug with click element off screen when in mobile
+                    if (!ClickElement(resultList[rndlink]))
+                    {
+                        return false;
+                    }
                     TOTAL_SESSION_SEARCHES_STATS++;
                     result = true;
                     break;                    
@@ -267,10 +323,32 @@ namespace NorthPole
             }
             if (!result)
             {
-                Debug.WriteLine("failed to find any related searches");
+                Console.WriteLine("failed to find any related searches");
             }
             Wait();
             return result;
+        }
+        public void doSearchLoop(IWebDriver driver)
+        {
+            bool relatedsearchresult = true;
+            while (!STOPBOT)
+            {
+                DoSearch(driver, searchList);
+                checkRPcount_counter++;
+                if (relatedsearchresult = doRelatedSearch(driver))
+                {
+                    checkRPcount_counter++;
+                }
+                CheckRPCount(driver);
+                while (relatedsearchresult && !STOPBOT)
+                {
+                    if (relatedsearchresult = doRelatedSearch(driver))
+                    {
+                        checkRPcount_counter++;
+                    }
+                    CheckRPCount(driver);
+                }
+            }
         }
 
         private bool ParseMaxSearchString(string maxss)
@@ -318,10 +396,9 @@ namespace NorthPole
             }
             if (int.TryParse(startStr, out startNum) && int.TryParse(endStr, out endNum))
             {
-                //TODO: break this into another function
-                STARTING_PC_RP_COUNT = startNum;
-                DAILY_MAX_PC_RP = endNum;
-                TOTAL_RP_LTE = DAILY_MAX_PC_RP - STARTING_PC_RP_COUNT;
+                STARTING_SEARCH_RP_COUNT = startNum;
+                DAILY_MAX_SEARCH_RP = endNum;
+                TOTAL_RP_LTE = DAILY_MAX_SEARCH_RP - STARTING_SEARCH_RP_COUNT;
                 return true;
             }
             else
@@ -330,35 +407,17 @@ namespace NorthPole
             }
         }
 
-        protected bool CreateSearchList()
-        {
-            try
-            {
-                searchList = new List<string>(LoadFile(@"wordlist.txt"));
-                return true;
-            }
-            catch (Exception e)
-            {
-                string emsg = "failed to load worlist, Aborting.";
-                Console.WriteLine(emsg);
-                Console.WriteLine(e.Message);
-                Debug.WriteLine(emsg);
-                Debug.WriteLine(e.Message);
-                Debug.WriteLine(e.StackTrace);
-                return false;
-            }
-        }
-
+        // edge case with if some how earning a offer while searching will cause us to be off by 1 or more
         protected void CalRP_LTE(IWebDriver driver)
         {
 
             if (SetCurrentPoints(driver))
             {
                 CalcRPEarned();
-                int total_dailypoints_so_far = STARTING_PC_RP_COUNT + (CURRENT_RP_COUNT_ACTUAL - STARTING_RP_COUNT_ACTUAL);
-                TOTAL_RP_LTE = DAILY_MAX_PC_RP - total_dailypoints_so_far;
-                Debug.WriteLine("points so far: " + total_dailypoints_so_far + " out of " + DAILY_MAX_PC_RP + ". " + TOTAL_RP_LTE +" rewards points left.");
-                if (total_dailypoints_so_far > DAILY_MAX_PC_RP || TOTAL_RP_LTE <= 0)
+                int total_dailypoints_so_far = STARTING_SEARCH_RP_COUNT + (CURRENT_RP_COUNT_ACTUAL - STARTING_RP_COUNT_ACTUAL);
+                TOTAL_RP_LTE = DAILY_MAX_SEARCH_RP - total_dailypoints_so_far;
+                Console.WriteLine("points so far: " + total_dailypoints_so_far + " out of " + DAILY_MAX_SEARCH_RP + ". " + TOTAL_RP_LTE +" rewards points left.");
+                if (total_dailypoints_so_far > DAILY_MAX_SEARCH_RP || TOTAL_RP_LTE <= 0)
                 {
                     STOPBOT = true;
                 }
@@ -368,163 +427,105 @@ namespace NorthPole
         protected void CalcRPEarned()
         {
             TOTAL_SESSION_POINTS_EARNED_STATS = CURRENT_RP_COUNT_ACTUAL - STARTING_RP_COUNT_ACTUAL;
-            Debug.WriteLine("Total Rewards Points Earned: " + TOTAL_SESSION_POINTS_EARNED_STATS);
+            Console.WriteLine("Total Rewards Points Earned: " + TOTAL_SESSION_POINTS_EARNED_STATS);
         }
 
-        protected string[] LoadFile(string path)
+        protected bool GoToLoginPageDesktop(IWebDriver driver)
         {
-            var file = File.ReadAllLines(path);
-            return file;
-        }
-
-        protected void Abort(int exitcode, IWebDriver driver)
-        {
-            Console.WriteLine("Abort entered! exit " + exitcode + " *TESTCODE*");
-            Console.ReadLine();
-            //driver.Quit();
-            //Environment.Exit(exitcode);
-        }
-
-        protected void Abort(int exitcode)
-        {
-            Console.WriteLine("Abort entered! exit " + exitcode + " *TESTCODE*");
-            Console.ReadLine();
-            //Environment.Exit(exitcode);
-        }
-
-        protected void Wait()
-        {
-            string msg = "Sleeping for 3 seconds...";
-            Console.WriteLine(msg);
-            Debug.WriteLine(msg);
-            System.Threading.Thread.Sleep(3000);
-        }
-
-        protected bool GetToSignInPage(IWebDriver driver)
-        {
-            try
+            System.Collections.ObjectModel.ReadOnlyCollection<IWebElement> elements;
+            SetElementsByClassName(driver, "identityOption", out elements);
+            foreach (var item in elements)
             {
-                driver.FindElement(By.Id("id_l")).Click();
-            }
-            catch (OpenQA.Selenium.NoSuchElementException e)
-            {
-                Console.WriteLine(e.Message);
-                Debug.WriteLine(e.Message);
-                Debug.WriteLine(e.StackTrace);
-                return false;
-            }
-            catch (Exception e)
-            {
-                string emsg = "Something horrible happened in getting to the login page";
-                Console.WriteLine(emsg);
-                Debug.WriteLine(emsg);
-                Debug.WriteLine(e.Message);
-                Debug.WriteLine(e.StackTrace);
-                return false;
-            }
-            Wait();
-            IWebElement loginLinks = null; // this bp?
-            try
-            {
-                loginLinks = driver.FindElement(By.ClassName("b_idProvidersBottom"));
-            }
-            catch (OpenQA.Selenium.NoSuchElementException e)
-            {
-                Console.WriteLine(e.Message);
-                Debug.WriteLine(e.Message);
-                Debug.WriteLine(e.StackTrace);
-                return false;
-            }
-            catch (Exception e)
-            {
-                string emsg = "Something horrible happened in getting to the login page";
-                Console.WriteLine(emsg);
-                Debug.WriteLine(emsg);
-                Debug.WriteLine(e.Message);
-                Debug.WriteLine(e.StackTrace);
-                return false;
-            }
-            var loginLinkList = loginLinks.FindElements(By.ClassName("id_name"));
-
-            foreach (IWebElement item in loginLinkList)
-            {
-                if (item.Text.ToString() == "Microsoft account")
+                if (item.Text.Contains("Microsoft account"))
                 {
-                    item.Click();
-                    return true;
+                    IWebElement element = item.FindElement(By.TagName("a"));
+                    if (ClickElement(element))
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
             }
-            string msg = "Could not find 'Microsoft account' link, Aborting.";
-            Console.WriteLine(msg);
-            Debug.WriteLine(msg);
             return false;
+        }
+
+        protected bool GoToLoginPageMobile(IWebDriver driver)
+        {
+            IWebElement MSAccountElement;
+            if (!SetElementByID(driver, "WLSignin", out MSAccountElement))
+            {
+                return false;
+            }
+            IWebElement SignInElement;
+            if (!SetElementByClassName(driver, "idText", out SignInElement))
+            {
+                return false;
+            }
+            if (ClickElement(SignInElement))
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         protected bool Login(IWebDriver driver)
         {
+            IWebElement LoginBox;
+            if (!SetElementByName(driver, "login", out LoginBox))
+            {
+                return false;
+            }
             try
             {
-                IWebElement loginBox = driver.FindElement(By.Name("login"));
-                loginBox.SendKeys(username);
-            }
-            catch (OpenQA.Selenium.NoSuchElementException e)
-            {
-                Console.WriteLine(e.Message);
-                Debug.WriteLine(e.Message);
-                Debug.WriteLine(e.StackTrace);
-                return false;
+                LoginBox.SendKeys(username);
             }
             catch (Exception e)
             {
-                string emsg = "Unable send keys for login";
-                Console.WriteLine(emsg);
-                Debug.WriteLine(emsg);
-                Debug.WriteLine(e.Message);
-                Debug.WriteLine(e.StackTrace);
+                LogError("Failed to send keys to login element.", e);
+                return false;
+            }
+            IWebElement PasswordBox;
+            if (!SetElementByName(driver, "passwd", out PasswordBox))
+            {
                 return false;
             }
 
             try
             {
-                IWebElement passwordBox = driver.FindElement(By.Name("passwd"));
-                passwordBox.SendKeys(password);
-                driver.FindElement(By.Name("SI")).Click();
-            }
-            catch (OpenQA.Selenium.NoSuchElementException e)
-            {
-                Console.WriteLine(e.Message);
-                Debug.WriteLine(e.Message);
-                Debug.WriteLine(e.StackTrace);
-                return false;
+                PasswordBox.SendKeys(password);
             }
             catch (Exception e)
             {
-                string emsg = "Unable send keys for password";
-                Console.WriteLine(emsg);
-                Debug.WriteLine(emsg);
-                Debug.WriteLine(e.Message);
-                Debug.WriteLine(e.StackTrace);
+                LogError("Unable send keys for password", e);
                 return false;
             }
-            return true;
-        }
-
-        protected bool SetElementByID(IWebDriver driver, string id, out IWebElement element)
-        {
-            try
+            IWebElement SignInButton;
+            if (!SetElementByID(driver, "idSIButton9", out SignInButton))
             {
-                element = driver.FindElement(By.Id(id));
+                return false;
+            }
+            if (ClickElement(SignInButton))
+            {
                 return true;
             }
-            catch (Exception e)
+            else
             {
-                element = null;
-                string emsg = "Unable to find element id " + id;
-                Console.WriteLine(emsg);
-                Debug.WriteLine(emsg);
-                Debug.WriteLine(e.Message);
-                Debug.WriteLine(e.StackTrace);
                 return false;
+            }
+        }
+
+        protected void CheckRPCount(IWebDriver driver)
+        {
+            if (checkRPcount_counter > TOTAL_RP_LTE * (mobile ? MOBILESEARCHTOPOINTRATIO : DESKTOPSEARCHTOPOINTRATIO))
+            {
+                CalRP_LTE(driver);
+                checkRPcount_counter = 0;
             }
         }
     }
