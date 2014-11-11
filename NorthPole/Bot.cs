@@ -30,7 +30,7 @@ namespace NorthPole
         {
             try
             {
-                driver = new FirefoxDriver();
+                driver = new OpenQA.Selenium.Chrome.ChromeDriver();
                 return true;
             }
             catch (Exception e)

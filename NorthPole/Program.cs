@@ -29,11 +29,14 @@ namespace NorthPole
             }
             else if (input == "1")
             {
+                //TODO:
+                //Add try/catch block for starting the bot.
+
                 //TestBot bot1 = new TestBot();
                 BingBot bot1 = new BingBot();
                 bot1.StartBot(false);
                 bot1.StartBot(true);
-                Console.WriteLine("Searching complete.");
+                Console.WriteLine("Bingbot complete.");
                 Console.ReadLine();
             }
         }

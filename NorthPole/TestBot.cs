@@ -35,7 +35,7 @@ namespace NorthPole
             Console.WriteLine("wordlist loaded. Word count: " + searchList.Count());
 
             Console.WriteLine("TestBot is launching Firefox...");
-            if (!LoadFireFox(agentString, out driver))
+            if (!LoadFireFox(out driver))
             {
                 return;
             }
@@ -51,9 +51,9 @@ namespace NorthPole
 
             SignIn(driver);
             //SetCurrentPoints(driver);
-            driver.Navigate().GoToUrl(homepage);
-            DoSearch(driver, searchList);
-            doRelatedSearch(driver);
+            //driver.Navigate().GoToUrl(homepage);
+            //DoSearch(driver, searchList);
+            //doRelatedSearch(driver);
             //DoSearch(driver, searchList);
             //DoSearch(driver, searchList);
             //DoSearch(driver, searchList);
