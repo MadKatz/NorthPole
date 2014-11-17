@@ -90,80 +90,24 @@ namespace NorthPole
             }
         }
 
-        protected bool SetElementByID(IWebDriver driver, string id, out IWebElement element)
+        protected bool SetElement(IWebDriver driver, By by, out IWebElement element)
         {
             try
             {
-                element = driver.FindElement(By.Id(id));
+                element = driver.FindElement(by);
                 return true;
             }
             catch (Exception e)
             {
                 element = null;
-                string msg = "Unable to find element by id " + id;
-                LogError(msg, e);
-                return false;
-            }
-        }
-        protected bool SetElementByName(IWebDriver driver, string name, out IWebElement element)
-        {
-            try
-            {
-                element = driver.FindElement(By.Name(name));
-                return true;
-            }
-            catch (Exception e)
-            {
-                element = null;
-                string msg = "Unable to find element by Name " + name;
-                LogError(msg, e);
-                return false;
-            }
-        }
-        protected bool SetElementByTagName(IWebDriver driver, string tname, out IWebElement element)
-        {
-            try
-            {
-                element = driver.FindElement(By.TagName(tname));
-                return true;
-            }
-            catch (Exception e)
-            {
-                element = null;
-                string msg = "Unable to find element by Name " + tname;
-                LogError(msg, e);
-                return false;
-            }
-        }
-        protected bool SetElementByClassName(IWebDriver driver, string cname, out IWebElement element)
-        {
-            try
-            {
-                element = driver.FindElement(By.ClassName(cname));
-                return true;
-            }
-            catch (Exception e)
-            {
-                element = null;
-                string msg = "Unable to find element by ClassName " + cname;
-                LogError(msg, e);
-                return false;
-            }
-        }
-        protected bool SetElementsByClassName(IWebDriver driver, string cname, out System.Collections.ObjectModel.ReadOnlyCollection<IWebElement> elements)
-        {
-            try
-            {
-                elements = driver.FindElements(By.ClassName(cname));
-                return true;
-            }
-            catch (Exception e)
-            {
-                elements = null;
-                string msg = "Unable to find elements by lassName " + cname;
+                string msg = "Unable to find element by: " + by.ToString();
                 LogError(msg, e);
                 return false;
             }
         }
     }
 }
+
+
+
+       
