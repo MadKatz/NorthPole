@@ -15,49 +15,51 @@ namespace NorthPole
         {
             IWebDriver driver = null;
             mobile = domobile;
-            Console.WriteLine("Mobile searching set to " + mobile.ToString());
             if (mobile)
             {
                 agentString = mobileAgent;
+                contextString = "Mobile";
             }
             else
             {
                 agentString = desktopAgent;
+                contextString = "PC";
             }
-            driver = null;
-            Console.WriteLine("TestBot is starting.");
 
+            // TODO:
+            // Code should be move to BotManager
+            Console.WriteLine("BingBot is starting... Mobile searching set to " + mobile.ToString());
             Console.WriteLine("Loading wordlist...");
             if (!LoadFile(@"wordlist.txt", out searchList))
             {
+                Console.Write("Failed to load wordlist, aborting.");
                 return;
             }
             Console.WriteLine("wordlist loaded. Word count: " + searchList.Count());
+            // END TODO
 
-            Console.WriteLine("TestBot is launching Firefox...");
-            if (!LoadFireFox(out driver))
-            {
-                return;
-            }
-            if (!GoToURL(driver, homepage + signinURL))
-            {
-                return;
-            }
-            Console.WriteLine("TestBot is going to " + homepage + signinURL);
+            Console.WriteLine("BingBot is launching Firefox...");
+            FirefoxProfile profile = new FirefoxProfile();
+            profile.SetPreference("general.useragent.override", agentString);
+            driver = new FirefoxDriver(profile);
 
-            Console.WriteLine("TestBot is signing in as...");
+            Console.WriteLine("BingBot is going to " + signinURL);
+            driver.Navigate().GoToUrl(signinURL);
+            //hack for mobile related searching
+            if (true)
+            {
+                driver.Manage().Window.Maximize();
+            }
+            //endhack
+            Console.WriteLine("BingBot is signing in as...");
             Console.WriteLine("username: " + username);
             Console.WriteLine("password: " + password);
-
-            SignIn(driver);
-            //SetCurrentPoints(driver);
-            //driver.Navigate().GoToUrl(homepage);
-            //DoSearch(driver, searchList);
-            //doRelatedSearch(driver);
-            //DoSearch(driver, searchList);
-            //DoSearch(driver, searchList);
-            //DoSearch(driver, searchList);
-            //DoSearch(driver, searchList);
+            if (!SignIn(driver))
+            {
+                driver.Quit();
+                return;
+            }
+            DoOffers(driver);
         }
     }
 }

@@ -16,77 +16,33 @@ namespace NorthPole
         {
             System.Threading.Thread.Sleep(3000);
         }
+
+        protected void Wait(Random random)
+        {
+            int rndnum = random.Next(3, 6);
+            Wait(rndnum * 1000);
+        }
+
+        protected void Wait(int value_in_ms)
+        {
+            System.Threading.Thread.Sleep(value_in_ms);
+        }
+
         protected void LogError(string str, Exception e)
         {
-            Console.WriteLine(str);
+            LogError(str);
             Console.WriteLine(e.Message);
             Console.WriteLine(e.StackTrace);
         }
+
         protected void LogError(string str)
         {
-            Console.WriteLine(str);
+            StringBuilder sb = new StringBuilder();
+            sb.Append("LOG: ");
+            sb.Append(str);
+            Console.WriteLine(sb);
         }
-        protected bool LoadFireFox(out IWebDriver driver)
-        {
-            try
-            {
-                driver = new OpenQA.Selenium.Chrome.ChromeDriver();
-                return true;
-            }
-            catch (Exception e)
-            {
-                driver = null;
-                string msg = "Failed to load firefox";
-                LogError(msg, e);
-                return false;
-            }
-        }
-        protected bool LoadFireFox(string agent, out IWebDriver driver)
-        {
-            FirefoxProfile profile = new FirefoxProfile();
-            profile.SetPreference("general.useragent.override", agent);
-            try
-            {
-                driver = new FirefoxDriver(profile);
-                return true;
-            }
-            catch (Exception e)
-            {
-                driver = null;
-                string msg = "Failed to load firefox";
-                LogError(msg, e);
-                return false;
-            }
-        }
-        protected bool MaximizeWindow(IWebDriver driver)
-        {
-            try
-            {
-                driver.Manage().Window.Maximize();
-                return true;
-            }
-            catch (Exception e)
-            {
-                string msg = "Failed to fetch the webdriver. Did firefox close?";
-                LogError(msg, e);
-                return false;
-            }
-        }
-        protected bool GoToURL(IWebDriver driver, string url)
-        {
-            try
-            {
-                driver.Navigate().GoToUrl(url);
-                return true;
-            }
-            catch (Exception e)
-            {
-                driver = null;
-                string msg = "Failed to fetch the webdriver. Did firefox close?";
-                LogError(msg, e);
-                return false;
-            }
-        }
+
         protected bool LoadFile(string path, out List<string> file)
         {
             try
@@ -103,6 +59,7 @@ namespace NorthPole
                 return false;
             }
         }
+
         protected bool ClickElement(IWebElement element)
         {
             try
@@ -117,6 +74,7 @@ namespace NorthPole
                 return false;
             }
         }
+
         protected bool ClearElement(IWebElement element)
         {
             try
@@ -131,6 +89,7 @@ namespace NorthPole
                 return false;
             }
         }
+
         protected bool SetElementByID(IWebDriver driver, string id, out IWebElement element)
         {
             try
