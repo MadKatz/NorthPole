@@ -43,23 +43,6 @@ namespace NorthPole
             Console.WriteLine(sb);
         }
 
-        protected bool LoadFile(string path, out List<string> file)
-        {
-            try
-            {
-                string[] temp = File.ReadAllLines(path);
-                file = new List<string>(temp);
-                return true;
-            }
-            catch (Exception e)
-            {
-                file = null;
-                string msg = "Failed to load the word list";
-                LogError(msg, e);
-                return false;
-            }
-        }
-
         protected bool ClickElement(IWebElement element)
         {
             try

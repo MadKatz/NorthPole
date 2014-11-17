@@ -109,6 +109,8 @@ namespace NorthPole
                 Console.WriteLine("BingBot: Doing Daily Offers...");
                 DoOffers(driver);
             }
+            SetCurrentPoints(driver);
+
             RP_COUNT_AFTER_OFFERS = CURRENT_RP_COUNT_ACTUAL;
 
             if (!SetDailyMaxPoints(driver))
@@ -461,7 +463,7 @@ namespace NorthPole
             Console.WriteLine("BingBot: Total Rewards Points Earned: " + TOTAL_SESSION_POINTS_EARNED_STATS);
 
             int total_dailypoints_so_far = STARTING_SEARCH_RP_COUNT + (CURRENT_RP_COUNT_ACTUAL - RP_COUNT_AFTER_OFFERS);
-            TOTAL_RP_LTE = total_dailypoints_so_far - DAILY_MAX_SEARCH_RP;
+            TOTAL_RP_LTE = DAILY_MAX_SEARCH_RP - total_dailypoints_so_far;
 
             Console.WriteLine("BingBot: points so far: " + total_dailypoints_so_far + " out of " + DAILY_MAX_SEARCH_RP + ". " + TOTAL_RP_LTE + " rewards points left.");
             if (total_dailypoints_so_far >= DAILY_MAX_SEARCH_RP || TOTAL_RP_LTE <= 0)

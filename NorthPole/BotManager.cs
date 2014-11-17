@@ -52,7 +52,7 @@ namespace NorthPole
 
         public void ExecuteAccountTest()
         {
-            ExecuteAccount("craigsmiths@outlook.com", "jumpstart987", searchList);
+            ExecuteAccount("@outlook.com", "", searchList);
         }
 
         public void ExecuteAccount(string username, string password, List<string> searchList)
