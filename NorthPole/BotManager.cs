@@ -12,22 +12,22 @@ namespace NorthPole
         private Random random;
         private List<string> searchList;
         private Dictionary<string, string> accounts;
-
-        private int TOTAL_POINTS_EARNED_STATS;
-        private int TOTAL_SEARCHES_STATS;
+        private Dictionary<string, int> accountPoints;
 
         public BotManager()
         {
             random = new Random();
+            accountPoints = new Dictionary<string, int>();
         }
 
         public void StartUp()
         {
             Console.WriteLine("##############BotManager v1.0##############");
             Console.WriteLine("BotManager is starting up...");
+
+            Console.WriteLine("Loading wordlist...");
             try
             {
-                Console.WriteLine("Loading wordlist...");
                 searchList = LoadWordSearchFile(@"wordlist.txt");
             }
             catch (Exception e)
@@ -36,23 +36,27 @@ namespace NorthPole
                 Console.WriteLine(msg);
                 Console.WriteLine(e.Message);
                 Console.WriteLine(e.StackTrace);
-                throw e;
+                return;
             }
             Console.WriteLine("BotManager: wordlist loaded. Word count: " + searchList.Count());
             Console.WriteLine("BotManager: Loading accounts...");
             accounts = LoadAccounts();
             Console.WriteLine("BotManager: Accounts loaded. Number of accounts loaded: " + accounts.Count());
             Console.WriteLine("BotManager: Start-up complete.");
+            //ExecuteAccounts(accounts, searchList);
+            ExecuteAccountTest();
             DisplayHASHString();
         }
 
         public void ShutDown()
         {
+            DisplayStats();
+            Console.WriteLine("BotManager: Shutting down.");
         }
 
         public void ExecuteAccountTest()
         {
-            ExecuteAccount("@outlook.com", "", searchList);
+            ExecuteAccount("", "", searchList);
         }
 
         public void ExecuteAccount(string username, string password, List<string> searchList)
@@ -78,16 +82,56 @@ namespace NorthPole
         {
             DisplayHASHString();
             Console.WriteLine("BotManager: Executing Bing Search on all acounts.");
-            Console.WriteLine("BotManager: Initizing Stats.");
-            TOTAL_POINTS_EARNED_STATS = 0;
-            TOTAL_SEARCHES_STATS = 0;
+            BingBot bot = new BingBot();
+            foreach (var account in accountList)
+            {
+                Console.WriteLine("BotManager: Starting search on account " + account.Key);
+                bool temp = false;
+                for (int i = 0; i < 2; i++)
+	            {
+                    try
+                    {
+                        bot.StartBot(account.Key, account.Value, temp, random, searchList);
+                    }
+                    catch (Exception e)
+                    {
+                        string str = temp ? "on Desktop search." : "on Moible search.";
+                        string msg = "BotManager: Bot failed on " + account.Key + ", " + str;
+                        Console.WriteLine(msg);
+                        Console.WriteLine(e.Message);
+                        Console.WriteLine(e.StackTrace);
+                    }
+                    if (!accountPoints.ContainsKey(bot.username))
+                    {
+                        accountPoints.Add(bot.username, bot.TOTAL_SESSION_POINTS_EARNED_STATS);
+                    }
+                    else
+                    {
+                        accountPoints[bot.username] += bot.TOTAL_SESSION_POINTS_EARNED_STATS;
+                    }
+
+                    if (!temp)
+                    {
+                        Console.WriteLine("Sleeping for 2mins.");
+                        System.Threading.Thread.Sleep(60000 * 2);
+                    }
+                    temp = true;
+	            }
+                Console.WriteLine("Sleeping for 3mins.");
+                System.Threading.Thread.Sleep(60000 * 3);
+            }
+            Console.WriteLine("BotManager: All accounts executed.");
+            ShutDown();
         }
 
         private void DisplayStats()
         {
             Console.WriteLine("##############BotManager Stats##############");
-            Console.WriteLine("TOTAL POINTS EARNED: " + TOTAL_POINTS_EARNED_STATS);
-            Console.WriteLine("TOTAL SEARCHES DONE: " + TOTAL_SEARCHES_STATS);
+            Console.WriteLine(" ACCOUNT      :    TOTAL POINTS EARNED ");
+            foreach (var account in accountPoints)
+            {
+                Console.WriteLine(account.Key + "               " + account.Value);
+            }
             DisplayHASHString();
         }
 
@@ -99,7 +143,6 @@ namespace NorthPole
         {
             Dictionary<string, string> result = new Dictionary<string, string>();
             //TODO: Load from file;
-            result.Add("account1", "password1");
             return result;
         }
         private List<string> LoadWordSearchFile(string path)

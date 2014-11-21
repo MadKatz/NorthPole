@@ -27,7 +27,7 @@ namespace NorthPole
         protected bool STOPBOT;
         protected bool mobile;
 
-        private int TOTAL_SESSION_POINTS_EARNED_STATS;
+        public int TOTAL_SESSION_POINTS_EARNED_STATS;
         private int TOTAL_SESSION_SEARCHES_STATS;
         private int TOTAL_RP_LTE;
 
@@ -45,6 +45,8 @@ namespace NorthPole
         {
             searchList = null;
             mobile = false;
+            agentString = "";
+            contextString = "";
             TOTAL_SESSION_POINTS_EARNED_STATS = 0;
             TOTAL_SESSION_SEARCHES_STATS = 0;
         }
@@ -79,6 +81,7 @@ namespace NorthPole
 
             Console.WriteLine("############################################");
             Console.WriteLine("BingBot: Starting up...");
+
             Console.WriteLine("BingBot: Launching Firefox as " + contextString);
             FirefoxProfile profile = new FirefoxProfile();
             profile.SetPreference("general.useragent.override", agentString);
@@ -104,12 +107,13 @@ namespace NorthPole
             }
 
             STARTING_RP_COUNT_ACTUAL = CURRENT_RP_COUNT_ACTUAL;
+
             if (!mobile)
             {
                 Console.WriteLine("BingBot: Doing Daily Offers...");
                 DoOffers(driver);
+                SetCurrentPoints(driver);
             }
-            SetCurrentPoints(driver);
 
             RP_COUNT_AFTER_OFFERS = CURRENT_RP_COUNT_ACTUAL;
 
@@ -135,11 +139,13 @@ namespace NorthPole
             Wait(random);
             if (SetDailyMaxPoints(driver))
             {
-                Console.WriteLine("BingBot: xxTEMPxx Points left to earn still.");
+                Console.WriteLine("BingBot: " + TOTAL_RP_LTE + " Points left to earn still.");
                 driver.Navigate().GoToUrl(Constants.HOMEPAGE);
                 Wait(random);
                 DoSearchLoop(driver);
             }
+
+            Console.WriteLine("BingBot: Total Rewards Points Earned: " + TOTAL_SESSION_POINTS_EARNED_STATS);
             Console.WriteLine("BingBot: searching complete.");
             ShutDown(driver);
             return;
@@ -260,7 +266,6 @@ namespace NorthPole
         public void DoSearch(IWebDriver driver, List<string> searchList)
         {
             IWebElement searchBar = driver.FindElement(By.Id("sb_form_q"));
-            // update randomneess
             string randomSearchString = searchList[random.Next(0, searchList.Count())];
             Console.WriteLine("BingBot: Performing search on: : " + randomSearchString);
             searchBar.Clear();
@@ -353,6 +358,34 @@ namespace NorthPole
                 driver.Navigate().Refresh();
                 GetAvailableOffers(driver, eList);
             }
+        }
+
+        public void GoToLoginPageDesktop(IWebDriver driver)
+        {
+            var elements = driver.FindElements(By.ClassName("identityOption"));
+            foreach (var item in elements)
+            {
+                if (item.Text.Contains("Microsoft account"))
+                {
+                    item.FindElement(By.TagName("a")).Click();
+                    break;
+                }
+            }
+        }
+
+        public void GoToLoginPageMobile(IWebDriver driver)
+        {
+            driver.FindElement(By.Id("WLSignin")).FindElement(By.ClassName("idText")).Click();
+        }
+
+        public void Login(IWebDriver driver)
+        {
+            WebDriverWait _wait = new WebDriverWait(driver, new TimeSpan(0, 1, 0));
+            _wait.Until(d => d.FindElement(By.Name("login")));
+
+            driver.FindElement(By.Name("login")).SendKeys(username);
+            driver.FindElement(By.Name("passwd")).SendKeys(password); ;
+            driver.FindElement(By.Id("idSIButton9")).Click();
         }
 
         private bool CheckRelatedSearch(IWebDriver driver)
@@ -456,11 +489,9 @@ namespace NorthPole
             }
         }
 
-        // edge case with if some how earning a offer while searching will cause us to be off by 1 or more
         private void CalcRP_LTE(IWebDriver driver)
         {
             TOTAL_SESSION_POINTS_EARNED_STATS = CURRENT_RP_COUNT_ACTUAL - STARTING_RP_COUNT_ACTUAL;
-            Console.WriteLine("BingBot: Total Rewards Points Earned: " + TOTAL_SESSION_POINTS_EARNED_STATS);
 
             int total_dailypoints_so_far = STARTING_SEARCH_RP_COUNT + (CURRENT_RP_COUNT_ACTUAL - RP_COUNT_AFTER_OFFERS);
             TOTAL_RP_LTE = DAILY_MAX_SEARCH_RP - total_dailypoints_so_far;
@@ -500,35 +531,7 @@ namespace NorthPole
             }
         }
 
-        protected void GoToLoginPageDesktop(IWebDriver driver)
-        {
-            var elements = driver.FindElements(By.ClassName("identityOption"));
-            foreach (var item in elements)
-            {
-                if (item.Text.Contains("Microsoft account"))
-                {
-                    item.FindElement(By.TagName("a")).Click();
-                    break;
-                }
-            }
-        }
-
-        protected void GoToLoginPageMobile(IWebDriver driver)
-        {
-            driver.FindElement(By.Id("WLSignin")).FindElement(By.ClassName("idText")).Click();
-        }
-
-        protected void Login(IWebDriver driver)
-        {
-            WebDriverWait _wait = new WebDriverWait(driver, new TimeSpan(0, 1, 0));
-            _wait.Until(d => d.FindElement(By.Name("login")));
-
-            driver.FindElement(By.Name("login")).SendKeys(username);
-            driver.FindElement(By.Name("passwd")).SendKeys(password); ;
-            driver.FindElement(By.Id("idSIButton9")).Click();
-        }
-
-        protected void ShutDown(IWebDriver driver)
+        private void ShutDown(IWebDriver driver)
         {
             Console.WriteLine("BingBot: Shutting Down.");
             Console.WriteLine("############################################");

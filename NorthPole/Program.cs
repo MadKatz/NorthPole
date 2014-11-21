@@ -33,7 +33,6 @@ namespace NorthPole
                 //Add try/catch block for starting the bot.
                 BotManager bm = new BotManager();
                 bm.StartUp();
-                bm.ExecuteAccountTest();
 
                 Console.WriteLine("Program complete.");
                 Console.ReadLine();
