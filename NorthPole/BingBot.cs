@@ -11,12 +11,17 @@ using OpenQA.Selenium.Firefox;
 
 namespace NorthPole
 {
-    class BingBot : Bot
+    class BingBot
     {
-        public string username;
+
+        protected IWebDriver driver;
+        protected string username;
         protected string password;
 
-        //protected string oldsigninURL = "https://login.live.com/login.srf?wa=wsignin1.0&rpsnv=12&ct=1415674836&rver=6.0.5286.0&wp=MBI&wreply=https:%2F%2Fwww.bing.com%2Fsecure%2FPassport.aspx%3Frequrl%3Dhttp%253a%252f%252fwww.bing.com%252f&lc=1033&id=264960";
+        public string Username
+        {
+            get { return username; }
+        }
 
         protected string agentString;
         protected string contextString;
@@ -27,16 +32,43 @@ namespace NorthPole
         protected bool STOPBOT;
         protected bool mobile;
 
-        public int TOTAL_SESSION_POINTS_EARNED_STATS;
-        private int TOTAL_SESSION_SEARCHES_STATS;
+        public int TOTAL_SESSION_POINTS_EARNED_STATS; // TODO: Check to see if we can remove
+        private int TOTAL_SESSION_SEARCHES_STATS; // TODO: can remove.
         private int TOTAL_RP_LTE;
 
-        private int STARTING_RP_COUNT_ACTUAL; // starting reward points counter (how many points did we start at)
-        private int STARTING_SEARCH_RP_COUNT; // PC/Mobile starting search counter
-        private int CURRENT_RP_COUNT_ACTUAL; // current reward points counter
-        private int DAILY_MAX_SEARCH_RP; // max daily PC search reward points
+        private int STARTING_RP_COUNT_ACTUAL; // starting reward points counter (how many points did we start at) TODO: change to lowercase, and audit
+        private int starting_search_rp_count; // search point count when we started
+
+        private int current_rp_count_actual; // current reward points counter
+        public int Current_RP_Count_Actual
+        {
+            get { return current_rp_count_actual; }
+        }
+
+        private int total_dailypoints_so_far;
+        public int Total_DailyPoints_So_Far
+        {
+            get { return total_dailypoints_so_far; }
+        }
+
+        private int daily_max_search_rp; // max daily PC search reward points
+        public int Daily_Max_Search_RP
+        {
+            get { return daily_max_search_rp; }
+        }
+
         private int checkRPcount_counter; // counter for checking our rewards points so far
-        private int RP_COUNT_AFTER_OFFERS;
+        private int RP_COUNT_AFTER_OFFERS; // TODO: check to see if we can remove
+        private int offer_count;
+        public int Offer_Count
+        {
+            get { return offer_count; }
+        }
+        private int offer_max;
+        public int Offer_Max
+        {
+            get { return offer_max; }
+        }
         private const int MOBILESEARCHTOPOINTRATIO = 3;
         private const int DESKTOPSEARCHTOPOINTRATIO = 2;
 
@@ -45,20 +77,37 @@ namespace NorthPole
         {
             searchList = null;
             mobile = false;
-            agentString = "";
-            contextString = "";
+            agentString = Constants.DESKTOPAGENT;
+            contextString = "PC";
             TOTAL_SESSION_POINTS_EARNED_STATS = 0;
             TOTAL_SESSION_SEARCHES_STATS = 0;
         }
 
-        public virtual void StartBot(string username, string password, bool domobile, Random random, List<string> searchWordList)
+        public void SetUp()
+        {
+            Console.WriteLine(Constants.HASH_STRING);
+            Console.WriteLine("BingBot: Starting up...");
+
+            Console.WriteLine("BingBot: Launching Firefox as " + contextString);
+            FirefoxProfile profile = new FirefoxProfile();
+            profile.SetPreference("general.useragent.override", agentString);
+            driver = new FirefoxDriver(profile);
+        }
+
+        public void ShutDown()
+        {
+            Console.WriteLine("BingBot: Shutting Down.");
+            Console.WriteLine("############################################");
+            driver.Quit();
+        }
+
+        public void StartBot(string username, string password, bool domobile, Random random, List<string> searchWordList)
         {
             this.username = username;
             this.password = password;
             this.random = random;
             searchList = searchWordList;
 
-            IWebDriver driver = null;
             mobile = domobile;
             if (mobile)
             {
@@ -73,133 +122,100 @@ namespace NorthPole
             TOTAL_RP_LTE = -1;
             STOPBOT = false;
             STARTING_RP_COUNT_ACTUAL = -1;
-            CURRENT_RP_COUNT_ACTUAL = -1;
-            STARTING_SEARCH_RP_COUNT = -1;
-            DAILY_MAX_SEARCH_RP = -1;
+            current_rp_count_actual = -1;
+            starting_search_rp_count = -1;
+            daily_max_search_rp = -1;
+            total_dailypoints_so_far = -1;
             checkRPcount_counter = 0;
             RP_COUNT_AFTER_OFFERS = -1;
+            offer_count = 0;
+            offer_max = -1;
 
-            Console.WriteLine("############################################");
-            Console.WriteLine("BingBot: Starting up...");
-
-            Console.WriteLine("BingBot: Launching Firefox as " + contextString);
-            FirefoxProfile profile = new FirefoxProfile();
-            profile.SetPreference("general.useragent.override", agentString);
-            driver = new FirefoxDriver(profile);
+            SetUp();
 
             Console.WriteLine("BingBot: Going to " + Constants.SIGNINURL);
             driver.Navigate().GoToUrl(Constants.SIGNINURL);
 
             driver.Manage().Window.Maximize();
 
-            if (!SignIn(driver))
+            SignInHelper signInHelper = new SignInHelper();
+            if (!signInHelper.SignIn(driver, mobile, username, password, random))
             {
-                ShutDown(driver);
+                ShutDown();
                 return;
             }
 
             Console.WriteLine("BingBot: Setting current & daily point count.");
-            if (!SetCurrentPoints(driver))
+            if (!SetCurrentPoints())
             {
                 Console.WriteLine("BingBot: Could not set current points, Aborting.");
-                ShutDown(driver);
+                ShutDown();
                 return;
             }
 
-            STARTING_RP_COUNT_ACTUAL = CURRENT_RP_COUNT_ACTUAL;
+            STARTING_RP_COUNT_ACTUAL = current_rp_count_actual;
 
+            OfferHelper offerHelper = new OfferHelper();
             if (!mobile)
             {
                 Console.WriteLine("BingBot: Doing Daily Offers...");
-                DoOffers(driver);
-                SetCurrentPoints(driver);
+                offerHelper.DoOffers(driver, random, ref offer_max, ref offer_count);
+                SetCurrentPoints();
             }
 
-            RP_COUNT_AFTER_OFFERS = CURRENT_RP_COUNT_ACTUAL;
+            RP_COUNT_AFTER_OFFERS = current_rp_count_actual;
 
-            if (!SetDailyMaxPoints(driver))
+            if (!SetDailyMaxPoints())
             {
                 Console.WriteLine("BingBot: Could not set daily max points, Aborting.");
-                ShutDown(driver);
+                ShutDown();
                 return;
             }
 
-            Console.WriteLine("BingBot: Todays daily " + contextString + " search points: " + STARTING_SEARCH_RP_COUNT + " out of " + DAILY_MAX_SEARCH_RP);
+            Console.WriteLine("BingBot: Todays daily " + contextString + " search points: " + starting_search_rp_count + " out of " + daily_max_search_rp);
 
             Console.WriteLine("BingBot: Returning to " + Constants.HOMEPAGE);
 
             driver.Navigate().GoToUrl(Constants.HOMEPAGE);
-            Wait(random);
+            BingBotUtils.Wait(random);
 
             Console.WriteLine("BingBot: Starting search loop.");
-            DoSearchLoop(driver);
+            DoSearchLoop();
 
             Console.WriteLine("BingBot: Verifying rewards points left.");
             driver.Navigate().GoToUrl(Constants.HOMEPAGE + Constants.DASHBOARDURL);
-            Wait(random);
-            if (SetDailyMaxPoints(driver))
+            BingBotUtils.Wait(random);
+            if (SetDailyMaxPoints())
             {
                 Console.WriteLine("BingBot: " + TOTAL_RP_LTE + " Points left to earn still.");
                 driver.Navigate().GoToUrl(Constants.HOMEPAGE);
-                Wait(random);
-                DoSearchLoop(driver);
+                BingBotUtils.Wait(random);
+                DoSearchLoop();
             }
 
             Console.WriteLine("BingBot: Total Rewards Points Earned: " + TOTAL_SESSION_POINTS_EARNED_STATS);
             Console.WriteLine("BingBot: searching complete.");
-            ShutDown(driver);
+
+            ShutDown();
             return;
         }
 
-        public bool SignIn(IWebDriver driver)
-        {
-            Console.WriteLine("BingBot: Logging in...");
-            Wait(random);
-            if (mobile)
-            {
-                GoToLoginPageMobile(driver);
-            }
-            else
-            {
-                GoToLoginPageDesktop(driver);
-            }
-            Wait(random);
-            Login(driver);
-            Wait(random);
-            if (driver.Url.Equals("https://www.bing.com/rewards/dashboard"))
-            {
-                Console.WriteLine("BingBot: login successfull.");
-                return true;
-            }
-            else if (driver.Title.Equals("Sign in to your Microsoft account"))
-            {
-                Console.WriteLine("BingBot: login failed. Aborting.");
-                return false;
-            }
-            else
-            {
-                ShutDown(driver);
-                Console.WriteLine("BingBot: Something unknown happened during signin, Aborting.");
-                return false;
-            }
-        }
-
-        public bool SetCurrentPoints(IWebDriver driver)
+        public bool SetCurrentPoints()
         {
             //bug when doing mobile searching, id_rc may not be present
             int cpoints;
             IWebElement rewardCount = null;
-            if (!SetElement(driver, By.Id("id_rc"), out rewardCount))
+            if (!BingBotUtils.SetElement(driver, By.Id("id_rc"), out rewardCount))
             {
                 Console.WriteLine("BingBot: Unable to set current points.");
                 Console.WriteLine("BingBot: Retrying to set current points...");
-                if (!SetElement(driver, By.Id("id_rc"), out rewardCount))
+                if (!BingBotUtils.SetElement(driver, By.Id("id_rc"), out rewardCount))
                 {
                     Console.WriteLine("BingBot: Unable to set current points.");
                     return false;
                 }
             }
-            Wait(random);
+            BingBotUtils.Wait(random);
             //TODO:
             //So TryParse fails for some unknown reason.
             //PossibleSolution: adding Wait() to start of method
@@ -207,8 +223,8 @@ namespace NorthPole
             string str = rewardCount.Text.ToString();
             if (int.TryParse(str, out cpoints))
             {
-                CURRENT_RP_COUNT_ACTUAL = cpoints;
-                Console.WriteLine("BingBot: Current Reward Points: " + CURRENT_RP_COUNT_ACTUAL);
+                current_rp_count_actual = cpoints;
+                Console.WriteLine("BingBot: Current Reward Points: " + current_rp_count_actual);
                 return true;
             }
             else
@@ -218,12 +234,12 @@ namespace NorthPole
             }
         }
 
-        public bool SetDailyMaxPoints(IWebDriver driver)
+        public bool SetDailyMaxPoints()
         {
             string searchString = contextString + " search";
             string maxSearchString = "";
 
-            if (VerifyIfMaxReached(driver, searchString))
+            if (VerifyIfMaxReached(searchString))
             {
                 return false;
             }
@@ -248,7 +264,7 @@ namespace NorthPole
             return false;
         }
 
-        public bool VerifyIfMaxReached(IWebDriver driver, string searchString)
+        public bool VerifyIfMaxReached(string searchString)
         {
             var temp = driver.FindElements(By.XPath("//div[contains(@class, 'check close-check dashboard-sprite')]"));
             foreach (var i in temp)
@@ -256,181 +272,47 @@ namespace NorthPole
                 var te = i.FindElement(By.XPath("../.."));
                 if (te.Text.Contains(searchString))
                 {
-                    Console.WriteLine("Max Points reached for " + searchString);
+                    //TODO: parse string to set PC/Mobile current and max stat strings
+                    Console.WriteLine("BingBot: Max Points reached for " + searchString);
                     return true;
                 }
             }
             return false;
         }
 
-        public void DoSearch(IWebDriver driver, List<string> searchList)
+        public void DoSearchLoop()
         {
-            IWebElement searchBar = driver.FindElement(By.Id("sb_form_q"));
-            string randomSearchString = searchList[random.Next(0, searchList.Count())];
-            Console.WriteLine("BingBot: Performing search on: : " + randomSearchString);
-            searchBar.Clear();
-            searchBar.SendKeys(randomSearchString);
-            searchBar.SendKeys(Keys.Enter);
-            TOTAL_SESSION_SEARCHES_STATS++;
-            Wait(random);
-        }
-
-        public bool DoRelatedSearch(IWebDriver driver)
-        {
-            //put in logic for webelement timeout ( WebDriverExpection )
-            if (mobile)
-            {
-                //for mobile
-                //try getting classname=rl_srch
-                //if empty try getting classname=b_rs
-                //
-                var RelatedSearchElements = driver.FindElements(By.ClassName("rl_srch"));
-                if (RelatedSearchElements.Count() < 1)
-                {
-                    RelatedSearchElements = driver.FindElements(By.ClassName("b_rs"));
-                }
-                if (!FindRelatedSearch(RelatedSearchElements))
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                var RelatedSearchElements = driver.FindElements(By.ClassName("b_ans"));
-                if (!FindRelatedSearch(RelatedSearchElements))
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        public void DoSearchLoop(IWebDriver driver)
-        {
+            SearchHelper searchHelper = new SearchHelper();
             bool relatedsearchresult = true;
             while (!STOPBOT)
             {
-                DoSearch(driver, searchList);
+                searchHelper.DoSearch(driver, searchList, ref TOTAL_SESSION_SEARCHES_STATS, random);
                 checkRPcount_counter++;
                 Debug.WriteLine(checkRPcount_counter);
-                CheckRPCount(driver);
+                CheckRPCount();
 
-                relatedsearchresult = CheckRelatedSearch(driver);
+                relatedsearchresult = CheckRelatedSearch(searchHelper);
 
                 while (relatedsearchresult && !STOPBOT)
                 {
-                    relatedsearchresult = CheckRelatedSearch(driver);
+                    relatedsearchresult = CheckRelatedSearch(searchHelper);
                 }
             }
         }
 
-        public void DoOffers(IWebDriver driver)
+        private bool CheckRelatedSearch(SearchHelper searchHelper)
         {
-            string mainWinHandle = driver.CurrentWindowHandle.ToString();
-            List<IWebElement> eList = new List<IWebElement>();
-            // While there are active offers
-            // Do a offer
-            // refresh page
-            // refresh offer list
-            GetAvailableOffers(driver, eList);
-            if (eList.Count == 0)
-            {
-                Console.WriteLine("BingBot: Failed to find any offers.");
-            }
-            while (eList.Count() > 0)
-            {
-                eList[random.Next(0, eList.Count())].Click();
-                Wait(random);
-                var WinHandles = driver.WindowHandles;
-                foreach (var win in WinHandles)
-                {
-                    if (win.ToString() != mainWinHandle)
-                    {
-                        driver.SwitchTo().Window(win);
-                        Wait(random);
-                        driver.Close();
-                    }
-                }
-                driver.SwitchTo().Window(mainWinHandle);
-                Wait(random);
-
-                eList = new List<IWebElement>();
-                driver.Navigate().Refresh();
-                GetAvailableOffers(driver, eList);
-            }
-        }
-
-        public void GoToLoginPageDesktop(IWebDriver driver)
-        {
-            var elements = driver.FindElements(By.ClassName("identityOption"));
-            foreach (var item in elements)
-            {
-                if (item.Text.Contains("Microsoft account"))
-                {
-                    item.FindElement(By.TagName("a")).Click();
-                    break;
-                }
-            }
-        }
-
-        public void GoToLoginPageMobile(IWebDriver driver)
-        {
-            driver.FindElement(By.Id("WLSignin")).FindElement(By.ClassName("idText")).Click();
-        }
-
-        public void Login(IWebDriver driver)
-        {
-            WebDriverWait _wait = new WebDriverWait(driver, new TimeSpan(0, 1, 0));
-            _wait.Until(d => d.FindElement(By.Name("login")));
-
-            driver.FindElement(By.Name("login")).SendKeys(username);
-            driver.FindElement(By.Name("passwd")).SendKeys(password); ;
-            driver.FindElement(By.Id("idSIButton9")).Click();
-        }
-
-        private bool CheckRelatedSearch(IWebDriver driver)
-        {
-            if (DoRelatedSearch(driver))
+            if (searchHelper.DoRelatedSearch(driver, mobile, ref TOTAL_SESSION_SEARCHES_STATS, random))
             {
                 checkRPcount_counter++;
                 Debug.WriteLine("search counter: " + checkRPcount_counter);
-                CheckRPCount(driver);
+                CheckRPCount();
                 return true;
             }
             else
             {
                 return false;
             }
-        }
-
-        private bool FindRelatedSearch(System.Collections.ObjectModel.ReadOnlyCollection<IWebElement> elements)
-        {
-            bool result = false;
-            foreach (var item in elements)
-            {
-                if (item.Text.Contains("Related searches") || item.Text.Contains("RELATED SEARCHES"))
-                {
-                    //bug need to check collection first
-                    var resultList = item.FindElements(By.TagName("a"));
-                    Debug.WriteLine("found a related search");
-                    //Bug with click element off screen when in mobile
-                    int rndLink = random.Next(0, resultList.Count());
-                    resultList[rndLink].SendKeys("");
-                    if (!ClickElement(resultList[rndLink]))
-                    {
-                        return false;
-                    }
-                    TOTAL_SESSION_SEARCHES_STATS++;
-                    result = true;
-                    break;
-                }
-            }
-            if (!result)
-            {
-                Console.WriteLine("BingBot: failed to find any related searches");
-            }
-            Wait(random);
-            return result;
         }
 
         private bool ParseMaxSearchString(string maxss)
@@ -478,9 +360,9 @@ namespace NorthPole
             }
             if (int.TryParse(startStr, out startNum) && int.TryParse(endStr, out endNum))
             {
-                STARTING_SEARCH_RP_COUNT = startNum;
-                DAILY_MAX_SEARCH_RP = endNum;
-                TOTAL_RP_LTE = DAILY_MAX_SEARCH_RP - STARTING_SEARCH_RP_COUNT;
+                starting_search_rp_count = startNum;
+                daily_max_search_rp = endNum;
+                TOTAL_RP_LTE = daily_max_search_rp - starting_search_rp_count;
                 return true;
             }
             else
@@ -489,64 +371,45 @@ namespace NorthPole
             }
         }
 
-        private void CalcRP_LTE(IWebDriver driver)
+        private void CalcRP_LTE()
         {
-            TOTAL_SESSION_POINTS_EARNED_STATS = CURRENT_RP_COUNT_ACTUAL - STARTING_RP_COUNT_ACTUAL;
+            TOTAL_SESSION_POINTS_EARNED_STATS = current_rp_count_actual - STARTING_RP_COUNT_ACTUAL;
 
-            int total_dailypoints_so_far = STARTING_SEARCH_RP_COUNT + (CURRENT_RP_COUNT_ACTUAL - RP_COUNT_AFTER_OFFERS);
-            TOTAL_RP_LTE = DAILY_MAX_SEARCH_RP - total_dailypoints_so_far;
+            total_dailypoints_so_far = starting_search_rp_count + (current_rp_count_actual - RP_COUNT_AFTER_OFFERS);
+            TOTAL_RP_LTE = daily_max_search_rp - total_dailypoints_so_far;
 
-            Console.WriteLine("BingBot: points so far: " + total_dailypoints_so_far + " out of " + DAILY_MAX_SEARCH_RP + ". " + TOTAL_RP_LTE + " rewards points left.");
-            if (total_dailypoints_so_far >= DAILY_MAX_SEARCH_RP || TOTAL_RP_LTE <= 0)
+            Console.WriteLine("BingBot: points so far: " + total_dailypoints_so_far + " out of " + daily_max_search_rp + ". " + TOTAL_RP_LTE + " rewards points left.");
+            if (total_dailypoints_so_far >= daily_max_search_rp || TOTAL_RP_LTE <= 0)
             {
                 STOPBOT = true;
             }
         }
 
-        private void CheckRPCount(IWebDriver driver)
+        private void CheckRPCount()
         {
             if (checkRPcount_counter > TOTAL_RP_LTE * 3)
             {
                 Console.WriteLine("BingBot: Checking how many points left to earn...");
-                if (SetCurrentPoints(driver))
+                if (SetCurrentPoints())
                 {
-                    CalcRP_LTE(driver);
+                    CalcRP_LTE();
                     checkRPcount_counter = 0;
                 }
                 else
                 {
                     driver.Navigate().GoToUrl(Constants.HOMEPAGE + Constants.DASHBOARDURL);
-                    if (SetCurrentPoints(driver))
+                    if (SetCurrentPoints())
                     {
-                        CalcRP_LTE(driver);
+                        CalcRP_LTE();
                         checkRPcount_counter = 0;
                         driver.Navigate().GoToUrl(Constants.HOMEPAGE);
-                        DoSearch(driver, searchList);
+                        SearchHelper searchHelper = new SearchHelper();
+                        searchHelper.DoSearch(driver, searchList, ref TOTAL_SESSION_SEARCHES_STATS, random);
                     }
                     else
                     {
                         throw new Exception("failed to set current points from dashboard, aborting.");
                     }
-                }
-            }
-        }
-
-        private void ShutDown(IWebDriver driver)
-        {
-            Console.WriteLine("BingBot: Shutting Down.");
-            Console.WriteLine("############################################");
-            driver.Quit();
-        }
-
-        private void GetAvailableOffers(IWebDriver driver, List<IWebElement> eList)
-        {
-            var temp = driver.FindElements(By.XPath("//div[contains(@class, 'check open-check dashboard-sprite')]"));
-            foreach (var e in temp)
-            {
-                var te = e.FindElement(By.XPath("../../../../.."));
-                if (te.Text.Contains("Earn and explore"))
-                {
-                    eList.Add(e);
                 }
             }
         }

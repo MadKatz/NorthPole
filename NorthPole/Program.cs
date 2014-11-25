@@ -32,7 +32,8 @@ namespace NorthPole
                 //TODO:
                 //Add try/catch block for starting the bot.
                 BotManager bm = new BotManager();
-                bm.StartUp();
+                bm.SetUp();
+                bm.Start();
 
                 Console.WriteLine("Program complete.");
                 Console.ReadLine();

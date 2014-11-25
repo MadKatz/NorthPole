@@ -10,17 +10,17 @@ namespace NorthPole
     class BotManager
     {
         private Random random;
-        private List<string> searchList;
+        List<string> searchList;
+        private List<AccountInfo> accountInfoList;
         private Dictionary<string, string> accounts;
-        private Dictionary<string, int> accountPoints;
 
         public BotManager()
         {
             random = new Random();
-            accountPoints = new Dictionary<string, int>();
+            accountInfoList = new List<AccountInfo>();
         }
 
-        public void StartUp()
+        public void SetUp()
         {
             Console.WriteLine("##############BotManager v1.0##############");
             Console.WriteLine("BotManager is starting up...");
@@ -43,112 +43,205 @@ namespace NorthPole
             accounts = LoadAccounts();
             Console.WriteLine("BotManager: Accounts loaded. Number of accounts loaded: " + accounts.Count());
             Console.WriteLine("BotManager: Start-up complete.");
-            //ExecuteAccounts(accounts, searchList);
-            ExecuteAccountTest();
-            DisplayHASHString();
         }
 
         public void ShutDown()
         {
-            DisplayStats();
             Console.WriteLine("BotManager: Shutting down.");
         }
 
-        public void ExecuteAccountTest()
+        public void Start()
         {
-            ExecuteAccount("", "", searchList);
+            if (searchList.Count > 0)
+            {
+                ExecuteAccounts(accounts, searchList);
+                //ExecuteAccount("", "", searchList);
+                DisplayStats();
+                ShutDown();
+            }
+            else
+            {
+                Console.WriteLine("BotManager: search list is empty, cannot start.");
+                return;
+            }
         }
 
         public void ExecuteAccount(string username, string password, List<string> searchList)
         {
-            DisplayHASHString();
+            Console.WriteLine(Constants.HASH_STRING);
             Console.WriteLine("BotManager: Executing Bing Search on account " + username);
-            BingBot bot = new BingBot();
-            try
-            {
-                bot.StartBot(username, password, false, random, searchList);
-                bot.StartBot(username, password, true, random, searchList);
-            }
-            catch (Exception e)
-            {
-                string msg = "BotManager: Bot failed.";
-                Console.WriteLine(msg);
-                Console.WriteLine(e.Message);
-                Console.WriteLine(e.StackTrace);
-            }
+            AccountInfo accountInfo = Execute(username, password, searchList);
+            accountInfoList.Add(accountInfo);
         }
 
         public void ExecuteAccounts(Dictionary<string, string> accountList, List<string> searchList)
         {
-            DisplayHASHString();
+            Console.WriteLine(Constants.HASH_STRING);
             Console.WriteLine("BotManager: Executing Bing Search on all acounts.");
-            BingBot bot = new BingBot();
             foreach (var account in accountList)
             {
-                Console.WriteLine("BotManager: Starting search on account " + account.Key);
-                bool temp = false;
-                for (int i = 0; i < 2; i++)
-	            {
-                    try
+                ExecuteAccount(account.Key, account.Value, searchList);
+                Console.WriteLine("BotManager: Sleeping for 3mins.");
+                BingBotUtils.Wait(60000 * 3);
+            }
+            Console.WriteLine("BotManager: All accounts executed.");
+        }
+
+        private AccountInfo Execute(string username, string password, List<string> searchList)
+        {
+            BingBot bot = new BingBot();
+            AccountInfo accountInfo = new AccountInfo();
+            accountInfo.AccountName = username;
+            bool mobile = false;
+            for (int i = 0; i < 2; i++)
+            {
+                try
+                {
+                    bot.StartBot(username, password, mobile, random, searchList);
+                }
+                catch (Exception e)
+                {
+                    string str = mobile ? "on Moible search." : "on Desktop search.";
+                    string msg = "BotManager: Bot failed on " + username + ", " + str;
+                    Console.WriteLine(msg);
+                    Console.WriteLine(e.Message);
+                    Console.WriteLine(e.StackTrace);
+                }
+                finally
+                {
+                    if (!mobile)
                     {
-                        bot.StartBot(account.Key, account.Value, temp, random, searchList);
-                    }
-                    catch (Exception e)
-                    {
-                        string str = temp ? "on Desktop search." : "on Moible search.";
-                        string msg = "BotManager: Bot failed on " + account.Key + ", " + str;
-                        Console.WriteLine(msg);
-                        Console.WriteLine(e.Message);
-                        Console.WriteLine(e.StackTrace);
-                    }
-                    if (!accountPoints.ContainsKey(bot.username))
-                    {
-                        accountPoints.Add(bot.username, bot.TOTAL_SESSION_POINTS_EARNED_STATS);
+                        accountInfo.Current_PC = bot.Total_DailyPoints_So_Far;
+                        accountInfo.Max_PC = bot.Daily_Max_Search_RP;
+                        accountInfo.Current_Offer = bot.Offer_Count;
+                        accountInfo.Max_Offer = bot.Offer_Max;
+                        Console.WriteLine("BotManager: Sleeping for 2mins.");
+                        BingBotUtils.Wait(60000 * 2);
                     }
                     else
                     {
-                        accountPoints[bot.username] += bot.TOTAL_SESSION_POINTS_EARNED_STATS;
+                        accountInfo.Current_Mobile = bot.Total_DailyPoints_So_Far;
+                        accountInfo.Max_Mobile = bot.Daily_Max_Search_RP;
                     }
+                }
 
-                    if (!temp)
-                    {
-                        Console.WriteLine("Sleeping for 2mins.");
-                        System.Threading.Thread.Sleep(60000 * 2);
-                    }
-                    temp = true;
-	            }
-                Console.WriteLine("Sleeping for 3mins.");
-                System.Threading.Thread.Sleep(60000 * 3);
+                mobile = true;
             }
-            Console.WriteLine("BotManager: All accounts executed.");
-            ShutDown();
+            accountInfo.Current_RP = bot.Current_RP_Count_Actual;
+            return accountInfo;
         }
 
         private void DisplayStats()
         {
             Console.WriteLine("##############BotManager Stats##############");
-            Console.WriteLine(" ACCOUNT      :    TOTAL POINTS EARNED ");
-            foreach (var account in accountPoints)
+            DisplayStatHeader();
+            foreach (var accountInfo in accountInfoList)
             {
-                Console.WriteLine(account.Key + "               " + account.Value);
+                DisplayAccountStat(accountInfo);
+                Console.WriteLine(Constants.HASH_STRING);
             }
-            DisplayHASHString();
         }
 
-        private void DisplayHASHString()
-        {
-            Console.WriteLine("############################################");
-        }
         private Dictionary<string, string> LoadAccounts()
         {
             Dictionary<string, string> result = new Dictionary<string, string>();
             //TODO: Load from file;
             return result;
         }
+
         private List<string> LoadWordSearchFile(string path)
         {
             string[] temp = File.ReadAllLines(path);
             return new List<string>(temp);
+        }
+
+        private void DisplayStatHeader()
+        {
+            string account_String = "Account";
+            StringBuilder sb = new StringBuilder();
+            sb.Append("# ");
+
+            int maxlength = GetMaxAccountStrLength();
+            maxlength = maxlength - account_String.Length;
+
+            for (int i = 0; i < (maxlength / 2) - 1; i++)
+            {
+                sb.Append(" ");
+            }
+            sb.Append(account_String);
+            for (int i = 0; i < (maxlength / 2) + 1; i++)
+            {
+                sb.Append(" ");
+            }
+            sb.Append(" :  Current RP  :   PC    :  Mobile :  Offers  :  Total  ");
+            Console.WriteLine(sb.ToString());
+        }
+
+        private void DisplayAccountStat(AccountInfo accountInfo)
+        {
+            StringBuilder sb = new StringBuilder();
+            int currentRP_string_count = 14;
+            int PC_string_count = 9;
+            int mobile_string_count = 9;
+            int offer_string_count = 10;
+            // Set Account Name
+            sb.Append("# " + accountInfo.AccountName);
+            int maxlength = GetMaxAccountStrLength();
+            maxlength = maxlength - accountInfo.AccountName.Length;
+            sb.Append(GetEmptyString(maxlength));
+            sb.Append(" :");
+            // Set Current RP 
+            int temp = currentRP_string_count - accountInfo.Current_RP.ToString().Length;
+            sb.Append(GetEmptyString(temp / 2));
+            sb.Append(accountInfo.Current_RP);
+            sb.Append(GetEmptyString(temp / 2));
+            sb.Append(":");
+            // Set PC
+            temp = PC_string_count - accountInfo.GetPC_String().Length;
+            sb.Append(GetEmptyString(temp / 2));
+            sb.Append(accountInfo.GetPC_String());
+            sb.Append(GetEmptyString(temp / 2));
+            sb.Append(":");
+            // Set Mobile
+            temp = mobile_string_count - accountInfo.GetMobile_String().Length;
+            sb.Append(GetEmptyString(temp / 2));
+            sb.Append(accountInfo.GetMobile_String());
+            sb.Append(GetEmptyString(temp / 2));
+            sb.Append(":");
+            // Set Offer
+            temp = offer_string_count - accountInfo.GetOffer_String().Length;
+            sb.Append(GetEmptyString(temp / 2));
+            sb.Append(accountInfo.GetOffer_String());
+            sb.Append(GetEmptyString(temp / 2));
+            sb.Append(":");
+            // Set Total
+            sb.Append(GetEmptyString(2));
+            sb.Append(accountInfo.GetTotal_String());
+
+            Console.WriteLine(sb.ToString());
+        }
+
+        private int GetMaxAccountStrLength()
+        {
+            int maxlength = 0;
+            foreach (var account in accounts)
+            {
+                if (account.Key.Length > maxlength)
+                {
+                    maxlength = account.Key.Length;
+                }
+            }
+            return maxlength;
+        }
+
+        private string GetEmptyString(int length)
+        {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < length; i++)
+            {
+                sb.Append(" ");
+            }
+            return sb.ToString();
         }
     }
 }
