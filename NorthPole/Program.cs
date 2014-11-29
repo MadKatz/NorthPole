@@ -29,8 +29,6 @@ namespace NorthPole
             }
             else if (input == "1")
             {
-                //TODO:
-                //Add try/catch block for starting the bot.
                 BotManager bm = new BotManager();
                 bm.SetUp();
                 bm.Start();

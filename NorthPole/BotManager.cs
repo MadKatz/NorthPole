@@ -18,6 +18,7 @@ namespace NorthPole
         {
             random = new Random();
             accountInfoList = new List<AccountInfo>();
+            accounts = new Dictionary<string, string>();
         }
 
         public void SetUp()
@@ -40,7 +41,7 @@ namespace NorthPole
             }
             Console.WriteLine("BotManager: wordlist loaded. Word count: " + searchList.Count());
             Console.WriteLine("BotManager: Loading accounts...");
-            accounts = LoadAccounts();
+            accounts = LoadAccounts("accountfile.txt");
             Console.WriteLine("BotManager: Accounts loaded. Number of accounts loaded: " + accounts.Count());
             Console.WriteLine("BotManager: Start-up complete.");
         }
@@ -68,7 +69,6 @@ namespace NorthPole
 
         public void ExecuteAccount(string username, string password, List<string> searchList)
         {
-            Console.WriteLine(Constants.HASH_STRING);
             Console.WriteLine("BotManager: Executing Bing Search on account " + username);
             AccountInfo accountInfo = Execute(username, password, searchList);
             accountInfoList.Add(accountInfo);
@@ -76,7 +76,6 @@ namespace NorthPole
 
         public void ExecuteAccounts(Dictionary<string, string> accountList, List<string> searchList)
         {
-            Console.WriteLine(Constants.HASH_STRING);
             Console.WriteLine("BotManager: Executing Bing Search on all acounts.");
             foreach (var account in accountList)
             {
@@ -142,10 +141,58 @@ namespace NorthPole
             }
         }
 
-        private Dictionary<string, string> LoadAccounts()
+        public Dictionary<string, string> LoadAccounts(string filepath)
         {
             Dictionary<string, string> result = new Dictionary<string, string>();
             //TODO: Load from file;
+            //string[] accountInfo;
+            //bool have_username;
+            //Read each line
+            //if (line.count > 0)
+            //  if (first char isnt not "#")
+            //      string[] x = string.split("=", line);
+            //      if (x[0] == "account")
+            //          accountInfo[0] = x[1];
+            //          have_username = true;
+            //
+            StreamReader sr;
+            string line;
+            string username = null;
+            string[] temp;
+
+            try
+            {
+                using (sr = new StreamReader(filepath))
+                {
+                    while ((line = sr.ReadLine()) != null)
+                    {
+                        if (line.Count() > 0)
+                        {
+                            if (line[0] != '#')
+                            {
+                                temp = line.Split('=');
+                                if (temp.Count() > 1)
+                                {
+                                    if (temp[0] == "email")
+                                    {
+                                        username = temp[1];
+                                    }
+                                    else if (temp[0] == "password" && !string.IsNullOrEmpty(username))
+                                    {
+                                        result.Add(username, temp[1]);
+                                        username = null;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("failed to load account file.");
+                Console.WriteLine(e.Message);
+            }
             return result;
         }
 
@@ -192,27 +239,27 @@ namespace NorthPole
             sb.Append(" :");
             // Set Current RP 
             int temp = currentRP_string_count - accountInfo.Current_RP.ToString().Length;
-            sb.Append(GetEmptyString(temp / 2));
-            sb.Append(accountInfo.Current_RP);
-            sb.Append(GetEmptyString(temp / 2));
+            int num_of_whitespaces = temp / 2;
+            int extra = temp % 2;
+            sb.Append(GetCenteredString(num_of_whitespaces, num_of_whitespaces + extra, accountInfo.Current_RP.ToString()));
             sb.Append(":");
             // Set PC
             temp = PC_string_count - accountInfo.GetPC_String().Length;
-            sb.Append(GetEmptyString(temp / 2));
-            sb.Append(accountInfo.GetPC_String());
-            sb.Append(GetEmptyString(temp / 2));
+            num_of_whitespaces = temp / 2;
+            extra = temp % 2;
+            sb.Append(GetCenteredString(num_of_whitespaces, num_of_whitespaces + extra, accountInfo.GetPC_String()));
             sb.Append(":");
             // Set Mobile
             temp = mobile_string_count - accountInfo.GetMobile_String().Length;
-            sb.Append(GetEmptyString(temp / 2));
-            sb.Append(accountInfo.GetMobile_String());
-            sb.Append(GetEmptyString(temp / 2));
+            num_of_whitespaces = temp / 2;
+            extra = temp % 2;
+            sb.Append(GetCenteredString(num_of_whitespaces, num_of_whitespaces + extra, accountInfo.GetMobile_String()));
             sb.Append(":");
             // Set Offer
             temp = offer_string_count - accountInfo.GetOffer_String().Length;
-            sb.Append(GetEmptyString(temp / 2));
-            sb.Append(accountInfo.GetOffer_String());
-            sb.Append(GetEmptyString(temp / 2));
+            num_of_whitespaces = temp / 2;
+            extra = temp % 2;
+            sb.Append(GetCenteredString(num_of_whitespaces, num_of_whitespaces + extra, accountInfo.GetOffer_String()));
             sb.Append(":");
             // Set Total
             sb.Append(GetEmptyString(2));
@@ -220,7 +267,10 @@ namespace NorthPole
 
             Console.WriteLine(sb.ToString());
         }
-
+        /// <summary>
+        /// Returns longest account name from the account dictionary.
+        /// </summary>
+        /// <returns></returns>
         private int GetMaxAccountStrLength()
         {
             int maxlength = 0;
@@ -233,7 +283,11 @@ namespace NorthPole
             }
             return maxlength;
         }
-
+        /// <summary>
+        /// Returns a empty string.
+        /// </summary>
+        /// <param name="length">number of empty spaces.</param>
+        /// <returns></returns>
         private string GetEmptyString(int length)
         {
             StringBuilder sb = new StringBuilder();
@@ -241,6 +295,21 @@ namespace NorthPole
             {
                 sb.Append(" ");
             }
+            return sb.ToString();
+        }
+        /// <summary>
+        /// Returns centered string with empty spaces around it.
+        /// </summary>
+        /// <param name="num_spaces_front">number of spaces in front of the string.</param>
+        /// <param name="num_spaces_back">number of spaces behind the string.</param>
+        /// <param name="str">the string to center.</param>
+        /// <returns></returns>
+        private string GetCenteredString(int num_spaces_front, int num_spaces_back, string str)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append(GetEmptyString(num_spaces_front));
+            sb.Append(str);
+            sb.Append(GetEmptyString(num_spaces_back));
             return sb.ToString();
         }
     }

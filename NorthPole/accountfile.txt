@@ -1,0 +1,11 @@
+﻿###
+#Account file format:
+# "#" for comments
+#
+#Example:
+#account=email@outlook.com
+#password=password123
+###
+#Account 1:
+email=test@hotmail.com
+password=test

@@ -11,7 +11,7 @@ namespace NorthPole
     class SearchHelper
     {
 
-        public void DoSearch(IWebDriver driver, List<string> searchList, ref int search_value_to_increment, Random random)
+        public void DoSearch(IWebDriver driver, List<string> searchList, Random random)
         {
             IWebElement searchBar = driver.FindElement(By.Id("sb_form_q"));
             string randomSearchString = searchList[random.Next(0, searchList.Count())];
@@ -19,11 +19,10 @@ namespace NorthPole
             searchBar.Clear();
             searchBar.SendKeys(randomSearchString);
             searchBar.SendKeys(Keys.Enter);
-            search_value_to_increment++;
             BingBotUtils.Wait(random);
         }
 
-        public bool DoRelatedSearch(IWebDriver driver, bool mobile, ref int search_value_to_increment, Random random)
+        public bool DoRelatedSearch(IWebDriver driver, bool mobile, Random random)
         {
             //put in logic for webelement timeout ( WebDriverExpection )
             if (mobile)
@@ -37,7 +36,7 @@ namespace NorthPole
                 {
                     RelatedSearchElements = driver.FindElements(By.ClassName("b_rs"));
                 }
-                if (!FindRelatedSearch(RelatedSearchElements, ref search_value_to_increment, random))
+                if (!FindRelatedSearch(RelatedSearchElements, random))
                 {
                     return false;
                 }
@@ -45,7 +44,7 @@ namespace NorthPole
             else
             {
                 var RelatedSearchElements = driver.FindElements(By.ClassName("b_ans"));
-                if (!FindRelatedSearch(RelatedSearchElements, ref search_value_to_increment, random))
+                if (!FindRelatedSearch(RelatedSearchElements, random))
                 {
                     return false;
                 }
@@ -53,7 +52,7 @@ namespace NorthPole
             return true;
         }
 
-        private bool FindRelatedSearch(System.Collections.ObjectModel.ReadOnlyCollection<IWebElement> elements, ref int search_value_to_increment, Random random)
+        private bool FindRelatedSearch(System.Collections.ObjectModel.ReadOnlyCollection<IWebElement> elements, Random random)
         {
             bool result = false;
             foreach (var item in elements)
@@ -66,10 +65,7 @@ namespace NorthPole
                     //Bug with click element off screen when in mobile
                     int rndLink = random.Next(0, resultList.Count());
                     resultList[rndLink].SendKeys("");
-
                     resultList[rndLink].Click();
-
-                    search_value_to_increment++;
                     result = true;
                     break;
                 }
