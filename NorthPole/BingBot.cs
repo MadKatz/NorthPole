@@ -229,44 +229,64 @@ namespace NorthPole
         {
             string searchString = contextString + " search";
             string maxSearchString = "";
-            //TODO: remove commented code below
-            //if (VerifyIfMaxReached(searchString))
-            //{
-            //    return false;
-            //}
 
             // Update below to use reverse xpath of verify?
-            var elements = driver.FindElements(By.ClassName("row"));
-            foreach (var item in elements)
+            if (mobile)
             {
-                if (item.Text.Contains(searchString))
+                IWebElement temp = driver.FindElement(By.ClassName("row"));
+                var eList = temp.FindElements(By.TagName("li"));
+                foreach (var element in eList)
                 {
-                    var searchElements = item.FindElements(By.TagName("li"));
-                    foreach (var searchelement in searchElements)
+                    if (element.FindElement(By.ClassName("offerTitle")).Text.Contains(searchString))
                     {
-                        if (searchelement.Text.Contains(searchString))
-                        {
-                            maxSearchString = searchelement.FindElement(By.ClassName("progress")).Text.ToString();
-                            return ParseMaxSearchString(maxSearchString);
-                        }
+                        maxSearchString = element.FindElement(By.ClassName("progress")).Text.ToString();
+                        return ParseMaxSearchString(maxSearchString);
                     }
                 }
             }
+            else
+            {
+                var eList = driver.FindElements(By.TagName("li"));
+                foreach (var element in eList)
+                {
+                    if (element.FindElement(By.ClassName("title")).Text.Contains(searchString))
+                    {
+                        maxSearchString = element.FindElement(By.ClassName("progress")).Text.ToString();
+                        return ParseMaxSearchString(maxSearchString);
+                    }
+                }
+            }
+            Console.WriteLine("BingBot: Failed to find element with " + searchString + " while setting max points.");
             return false;
         }
 
         public bool VerifyIfMaxReached(string searchString)
         {
-            var temp = driver.FindElements(By.XPath("//div[contains(@class, 'check close-check dashboard-sprite')]"));
-            foreach (var i in temp)
+            var eList = driver.FindElements(By.XPath("//div[contains(@class, 'check close-check dashboard-sprite')]"));
+            if (mobile)
             {
-                var te = i.FindElement(By.XPath("../.."));
-                if (te.Text.Contains(searchString))
+                foreach (var element in eList)
                 {
-                    //TODO: parse string to set PC/Mobile current and max stat strings
-                    Console.WriteLine("BingBot: Max Points reached for " + searchString);
-                    ParseCompletedSearchString(te.FindElement(By.ClassName("progress")).Text.ToString());
-                    return true;
+                    IWebElement targetElement = element.FindElement(By.XPath("../../.."));
+                    if (targetElement.FindElement(By.ClassName("offerTitle")).Text.Contains(searchString))
+                    {
+                        Console.WriteLine("BingBot: Max Points reached for " + searchString);
+                        ParseCompletedSearchString(targetElement.FindElement(By.ClassName("progress")).Text.ToString());
+                        return true;
+                    }
+                }
+            }
+            else
+            {
+                foreach (var element in eList)
+                {
+                    IWebElement targetElement = element.FindElement(By.XPath("../.."));
+                    if (targetElement.FindElement(By.ClassName("title")).Text.Contains(searchString))
+                    {
+                        Console.WriteLine("BingBot: Max Points reached for " + searchString);
+                        ParseCompletedSearchString(targetElement.FindElement(By.ClassName("progress")).Text.ToString());
+                        return true;
+                    }
                 }
             }
             return false;

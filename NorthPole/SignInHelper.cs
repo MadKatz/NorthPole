@@ -63,9 +63,16 @@ namespace NorthPole
 
         public void Login(IWebDriver driver, string username, string password)
         {
-            WebDriverWait _wait = new WebDriverWait(driver, new TimeSpan(0, 1, 0));
-            _wait.Until(d => d.FindElement(By.Name("login")));
-
+            //WebDriverWait _wait = new WebDriverWait(driver, new TimeSpan(0, 1, 0));
+            //_wait.Until(d => d.FindElement(By.Name("login")));
+            //
+            //Hack for waiting till login elements are available.
+            var tempList = driver.FindElements(By.Name("login"));
+            while (tempList.Count() == 0)
+            {
+                tempList = driver.FindElements(By.Name("login"));
+            }
+            //EndHack
             driver.FindElement(By.Name("login")).SendKeys(username);
             driver.FindElement(By.Name("passwd")).SendKeys(password);
             driver.FindElement(By.Id("idSIButton9")).Click();

@@ -74,6 +74,21 @@ namespace NorthPole
             accountInfoList.Add(accountInfo);
         }
 
+        public void ExecuteAccount(string username, string password)
+        {
+            if (searchList.Count > 0)
+            {
+                ExecuteAccount(username, password, searchList);
+                DisplayStats();
+                ShutDown();
+            }
+            else
+            {
+                Console.WriteLine("BotManager: search list is empty, cannot start.");
+                return;
+            }
+        }
+
         public void ExecuteAccounts(Dictionary<string, string> accountList, List<string> searchList)
         {
             Console.WriteLine("BotManager: Executing Bing Search on all acounts.");
