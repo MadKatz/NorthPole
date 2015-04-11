@@ -12,26 +12,29 @@ namespace NorthPole
         {
             if (args.Count() > 0)
             {
-                for (int i = 0; i < args.Count(); i++)
+                if (args[0] == "-a")
                 {
-                    if (args[i] == "-a")
+                    ExecuteAccountFile();
+                }
+                else if (args[0] == "-s")
+                {
+                    if (args.Count() < 3)
                     {
-                        ExecuteAccountFile();
+                        Console.WriteLine("Not enough arguments.");
+                        DisplayUsage();
+                        Environment.Exit(0);
                     }
-                    else if (args[i] == "-s")
+                    else
                     {
-                        if (args.Count() < 3)
-                        {
-                            Console.WriteLine("Not enough arguments.");
-                            Environment.Exit(0);
-                        }
-                        else
-                        {
-                            BotManager bm = new BotManager();
-                            bm.SetUp();
-                            bm.ExecuteAccount(args[1], args[2]);
-                        }
+                        BotManager bm = new BotManager();
+                        bm.SetUp();
+                        bm.ExecuteAccount(args[1], args[2]);
                     }
+                }
+                else
+                {
+                    DisplayUsage();
+                    Environment.Exit(0);
                 }
             }
             else
@@ -41,7 +44,7 @@ namespace NorthPole
                 Console.WriteLine("Project NorthPole: Bingbot v1.0");
                 Console.WriteLine("Usage:");
                 Console.WriteLine("Enter '1' to execute a single account.");
-                Console.WriteLine("Enter '2' to all accounts from accountfile.");
+                Console.WriteLine("Enter '2' to all accounts from account file.");
                 Console.WriteLine("Enter '3' to quit.");
                 Console.Write("Input: ");
                 while (!valid_input)
@@ -71,14 +74,14 @@ namespace NorthPole
                 Console.WriteLine("Press any key to quit.");
                 while ((input = Console.ReadLine()) != null)
                 {
-
+                    Environment.Exit(0);
                 }
             }
         }
 
         private static bool CheckInput(string input)
         {
-            if (input == "0" || input == "1" || input == "3")
+            if (input == "1" || input == "2" || input == "3")
             {
                 return true;
             }
@@ -106,6 +109,13 @@ namespace NorthPole
             BotManager bm = new BotManager();
             bm.SetUp();
             bm.Start();
+        }
+
+        private static void DisplayUsage()
+        {
+            Console.WriteLine("Usage:");
+            Console.WriteLine("'-a' to execute all accounts from account file.");
+            Console.WriteLine("'-s [email] [password]' to execute single account with given email and password.");
         }
     }
 }

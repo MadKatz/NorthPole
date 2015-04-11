@@ -206,12 +206,12 @@ namespace NorthPole
                     return false;
                 }
             }
+            string str = rewardCount.Text;
             BingBotUtils.Wait(random);
             //TODO:
             //So TryParse fails for some unknown reason.
             //PossibleSolution: adding Wait() to start of method
             //Other possible solution, do a forearch on the string for Char.IsDigit()
-            string str = rewardCount.Text.ToString();
             if (int.TryParse(str, out cpoints))
             {
                 current_rp_count_actual = cpoints;

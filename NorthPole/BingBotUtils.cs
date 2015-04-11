@@ -20,6 +20,20 @@ namespace NorthPole
             System.Threading.Thread.Sleep(value_in_ms);
         }
 
+        public static bool Click(IWebElement element)
+        {
+            try
+            {
+                element.Click();
+                return true;
+            }
+            catch (OpenQA.Selenium.StaleElementReferenceException e)
+            {
+                Console.WriteLine("StaleElementReferenceException: " + e.Message);
+                return false;
+            }
+        }
+
         public static bool SetElement(IWebDriver driver, By by, out IWebElement element)
         {
             try

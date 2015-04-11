@@ -14,22 +14,21 @@ namespace NorthPole
         public void DoOffers(IWebDriver driver, Random random, ref int max_offers, ref int offer_count)
         {
             string mainWinHandle = driver.CurrentWindowHandle.ToString();
-            List<IWebElement> eList = new List<IWebElement>();
+            List<IWebElement> offerList = GetAvailableOffers(driver);
             // While there are active offers
             // Do a offer
             // refresh page
             // refresh offer list
-            GetAvailableOffers(driver, eList);
-            max_offers = eList.Count;
-            if (eList.Count == 0)
+            max_offers = offerList.Count;
+            if (offerList.Count == 0)
             {
                 Console.WriteLine("BingBot: Failed to find any offers.");
             }
-            while (eList.Count() > 0)
+            while (offerList.Count() > 0)
             {
                 offer_count++;
-                eList[random.Next(0, eList.Count())].Click();
-                BingBotUtils.Wait(random);
+                int randomInt = random.Next(0, offerList.Count());
+                offerList[randomInt].Click();
                 var WinHandles = driver.WindowHandles;
                 foreach (var win in WinHandles)
                 {
@@ -41,23 +40,40 @@ namespace NorthPole
                     }
                 }
                 driver.SwitchTo().Window(mainWinHandle);
-                BingBotUtils.Wait(random);
-
-                eList = new List<IWebElement>();
                 driver.Navigate().Refresh();
-                GetAvailableOffers(driver, eList);
+                offerList = GetAvailableOffers(driver);
             }
         }
 
-        private void GetAvailableOffers(IWebDriver driver, List<IWebElement> eList)
+        private List<IWebElement> GetAvailableOffers(IWebDriver driver)
         {
+            List<IWebElement> result = new List<IWebElement>();
             var temp = driver.FindElements(By.XPath("//div[contains(@class, 'check open-check dashboard-sprite')]"));
             foreach (var e in temp)
             {
                 var te = e.FindElement(By.XPath("../../../../.."));
                 if (te.Text.Contains("Earn and explore"))
                 {
-                    eList.Add(e);
+                    var offerElement = e.FindElement(By.XPath("../.."));
+                    string s = offerElement.Text;
+                    string blacklist1 = "trivia";
+                    string blacklist2 = "Trivia";
+                    if (!s.Contains(blacklist2))
+                    {
+                        result.Add(offerElement);
+                    }
+                }
+            }
+            return result;
+        }
+
+        private void RemoveOffers(List<IWebElement> offerList)
+        {
+            foreach (var offer in offerList)
+            {
+                if (offer.Text.Contains("trivia"))
+                {
+                    offerList.Remove(offer);
                 }
             }
         }
