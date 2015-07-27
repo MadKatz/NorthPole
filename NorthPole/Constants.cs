@@ -8,7 +8,7 @@ namespace NorthPole
 {
     static class Constants
     {
-        public const string SIGNINURL = "https://www.bing.com/rewards/signin";
+        public const string SIGNINURL = "https://www.bing.com/rewards";
         public const string HOMEPAGE = "http://www.bing.com/";
         public const string DASHBOARDURL = "rewards/dashboard";
         public const string DESKTOPAGENT = "Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko";

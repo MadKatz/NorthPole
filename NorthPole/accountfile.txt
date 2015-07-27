@@ -3,7 +3,21 @@
 # "#" for comments
 #
 #Example:
-#account=email@outlook.com
+#email=email@outlook.com
 #password=password123
 ###
 #Account 1:
+email=
+password=
+#Account 2:
+email=
+password=
+#Account 3:
+email=
+password=
+#Account 4:
+email=
+password=
+#Account 5:
+email=
+password=

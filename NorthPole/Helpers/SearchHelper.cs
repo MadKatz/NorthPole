@@ -1,28 +1,42 @@
-﻿using System;
+﻿using OpenQA.Selenium;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NorthPole.Utils;
 using System.Diagnostics;
-using OpenQA.Selenium;
 
-namespace NorthPole
+namespace NorthPole.Helpers
 {
-    class SearchHelper
+    public class SearchHelper
     {
-        private List<string> usedSearchWordList;
-        private List<string> usedRelatedSearchLinkList;
+        protected IWebDriver driver;
+        protected Random random;
+        protected List<string> usedSearchWordList;
+        protected List<string> searchWordList;
+        protected String searchBarID = "sb_form_q";
+        private int searchCounter;
 
-        public SearchHelper()
+        public int SearchCounter
         {
-            usedSearchWordList = new List<string>();
-            usedRelatedSearchLinkList = new List<string>();
+            get { return searchCounter; }
+            set { searchCounter = value; }
         }
 
-        public void DoSearch(IWebDriver driver, List<string> searchList, Random random)
+        public SearchHelper(IWebDriver driver, List<string> searchWordList, Random random)
         {
-            IWebElement searchBar = driver.FindElement(By.Id("sb_form_q"));
-            string randomSearchString = searchList[random.Next(0, searchList.Count())];
+            this.driver = driver;
+            this.random = random;
+            this.searchWordList = searchWordList;
+            usedSearchWordList = new List<string>();
+            SearchCounter = 0;
+        }
+
+        public void DoSearch()
+        {
+            IWebElement searchBar = driver.FindElement(By.Id(searchBarID));
+            string randomSearchString = searchWordList[random.Next(0, searchWordList.Count())];
             bool gotNewSearchWord = false;
             //get new searchWord
             //check if new search has been used before
@@ -40,22 +54,22 @@ namespace NorthPole
                 }
                 if (!gotNewSearchWord)
                 {
-                    randomSearchString = searchList[random.Next(0, searchList.Count())];
+                    randomSearchString = searchWordList[random.Next(0, searchWordList.Count())];
                 }
             }
             usedSearchWordList.Add(randomSearchString);
-            Console.WriteLine("BingBot: Performing search on: : " + randomSearchString);
             searchBar.Clear();
             searchBar.SendKeys(randomSearchString);
             searchBar.SendKeys(Keys.Enter);
-            BingBotUtils.Wait(random);
+            SearchCounter++;
+            BotUtils.Wait(random);
         }
 
-        public bool DoRelatedSearch(IWebDriver driver, bool mobile, Random random)
+        public bool DoRelatedSearch(bool mobile)
         {
             //put in logic for webelement timeout ( WebDriverExpection )
             //possible fix for element no longer attached to the DOM
-            BingBotUtils.Wait(random);
+            BotUtils.Wait(random);
             //end fix
             if (mobile)
             {
@@ -68,7 +82,7 @@ namespace NorthPole
                 {
                     RelatedSearchElements = driver.FindElements(By.ClassName("b_rs"));
                 }
-                if (FindRelatedSearch(RelatedSearchElements, random))
+                if (FindRelatedSearch(RelatedSearchElements))
                 {
                     return true;
                 }
@@ -76,7 +90,7 @@ namespace NorthPole
             else
             {
                 var RelatedSearchElements = driver.FindElements(By.ClassName("b_ans"));
-                if (FindRelatedSearch(RelatedSearchElements, random))
+                if (FindRelatedSearch(RelatedSearchElements))
                 {
                     return true;
                 }
@@ -84,7 +98,7 @@ namespace NorthPole
             return false;
         }
 
-        private bool FindRelatedSearch(System.Collections.ObjectModel.ReadOnlyCollection<IWebElement> elements, Random random)
+        private bool FindRelatedSearch(System.Collections.ObjectModel.ReadOnlyCollection<IWebElement> elements)
         {
             bool result = false;
             foreach (var item in elements)
@@ -94,47 +108,25 @@ namespace NorthPole
                     var resultList = item.FindElements(By.TagName("a"));
                     if (resultList.Count == 0)
                     {
-                        Console.WriteLine("BingBot: failed to find any related searches");
+                        Debug.WriteLine("failed to find any related searches");
                         return result;
                     }
-                    Debug.WriteLine("found a related search link");
+                    //TODO: add below logic:
                     //get new relatedSearchLink
                     //check if new relatedSearchLink has been used before
                     //  if true get new relatedSearchLink and repeat
                     //  if false, add relatedSearchLink to usedRelatedSearchLinkList
                     int rndLink = random.Next(0, resultList.Count());
-                    bool newRelatedSearchLink = false;
-                    while (!newRelatedSearchLink)
-                    {
-                        newRelatedSearchLink = true;
-                        foreach (string link in usedRelatedSearchLinkList)
-                        {
-                            if (resultList[rndLink].Text.Equals(link))
-                            {
-                                newRelatedSearchLink = false;
-                            }
-                        }
-                        if (!newRelatedSearchLink)
-                        {
-                            if (resultList.Count < 3)
-                            {
-                                Console.WriteLine("BingBot: failed to find any unused related searches");
-                                return result;
-                            }
-                            rndLink = random.Next(0, resultList.Count());
-                        }
-                    }
-                    usedRelatedSearchLinkList.Add(resultList[rndLink].Text);
-                    resultList[rndLink].SendKeys("");
+                    resultList[rndLink].SendKeys("");//TODO: get rid of this line
                     resultList[rndLink].Click();
+                    SearchCounter++;
                     return true;
                 }
             }
             if (!result)
             {
-                Console.WriteLine("BingBot: failed to find any related searches");
+                Debug.WriteLine("failed to find any related searches");
             }
-            BingBotUtils.Wait(random);
             return result;
         }
     }

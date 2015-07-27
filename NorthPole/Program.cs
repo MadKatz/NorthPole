@@ -26,9 +26,9 @@ namespace NorthPole
                     }
                     else
                     {
-                        BotManager bm = new BotManager();
-                        bm.SetUp();
-                        bm.ExecuteAccount(args[1], args[2]);
+                        Controller controller = new Controller();
+                        controller.SetUp();
+                        controller.ExecuteAccount(args[1], args[2]);
                     }
                 }
                 else
@@ -99,16 +99,16 @@ namespace NorthPole
             email = Console.ReadLine();
             Console.Write("Enter password: ");
             password = Console.ReadLine();
-            BotManager bm = new BotManager();
-            bm.SetUp();
-            bm.ExecuteAccount(email, password);
+            Controller controller = new Controller();
+            controller.SetUp();
+            controller.ExecuteAccount(email, password);
         }
 
         private static void ExecuteAccountFile()
         {
-            BotManager bm = new BotManager();
-            bm.SetUp();
-            bm.Start();
+            Controller controller = new Controller();
+            controller.SetUp();
+            controller.Start();
         }
 
         private static void DisplayUsage()

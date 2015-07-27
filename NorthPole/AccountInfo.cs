@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace NorthPole
 {
-    class AccountInfo
+    public class AccountInfo
     {
         private int current_RP;
         private int current_PC;

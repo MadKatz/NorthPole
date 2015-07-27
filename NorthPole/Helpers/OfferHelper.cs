@@ -1,20 +1,33 @@
-﻿using System;
+﻿using OpenQA.Selenium;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using OpenQA.Selenium;
+using NorthPole.Utils;
 
-
-namespace NorthPole
+namespace NorthPole.Helpers
 {
-    class OfferHelper
+    public class OfferHelper
     {
+        protected IWebDriver driver;
+        protected Random random;
+        protected String checkmarkXPATH = "//div[contains(@class, 'check open-check dashboard-sprite')]";
+        protected List<String> blackList;
 
-        public void DoOffers(IWebDriver driver, Random random, ref int max_offers, ref int offer_count)
+        public OfferHelper(IWebDriver driver, Random random)
+        {
+            this.driver = driver;
+            this.random = random;
+            blackList = new List<string>() { "trivia", "Trivia" };
+        }
+
+
+        public void DoOffers(ref int max_offers, ref int offer_count)
         {
             string mainWinHandle = driver.CurrentWindowHandle.ToString();
-            List<IWebElement> offerList = GetAvailableOffers(driver);
+            List<IWebElement> offerList = GetAvailableOffers();
             // While there are active offers
             // Do a offer
             // refresh page
@@ -22,7 +35,7 @@ namespace NorthPole
             max_offers = offerList.Count;
             if (offerList.Count == 0)
             {
-                Console.WriteLine("BingBot: Failed to find any offers.");
+                Debug.WriteLine("Failed to find any offers.");
             }
             while (offerList.Count() > 0)
             {
@@ -35,47 +48,42 @@ namespace NorthPole
                     if (win.ToString() != mainWinHandle)
                     {
                         driver.SwitchTo().Window(win);
-                        BingBotUtils.Wait(random);
+                        BotUtils.Wait(random);
                         driver.Close();
                     }
                 }
                 driver.SwitchTo().Window(mainWinHandle);
                 driver.Navigate().Refresh();
-                offerList = GetAvailableOffers(driver);
+                offerList = GetAvailableOffers();
             }
         }
 
-        private List<IWebElement> GetAvailableOffers(IWebDriver driver)
+        private List<IWebElement> GetAvailableOffers()
         {
             List<IWebElement> result = new List<IWebElement>();
-            var temp = driver.FindElements(By.XPath("//div[contains(@class, 'check open-check dashboard-sprite')]"));
+            var temp = driver.FindElements(By.XPath(checkmarkXPATH));
             foreach (var e in temp)
             {
                 var te = e.FindElement(By.XPath("../../../../.."));
                 if (te.Text.Contains("Earn and explore"))
                 {
                     var offerElement = e.FindElement(By.XPath("../.."));
-                    string s = offerElement.Text;
-                    string blacklist1 = "trivia";
-                    string blacklist2 = "Trivia";
-                    if (!s.Contains(blacklist2))
+                    string offerElementText = offerElement.Text;
+                    bool offerNotTrivia = true;
+                    foreach (String blackword in blackList)
+                    {
+                        if (offerElementText.Contains(blackword))
+                        {
+                            offerNotTrivia = false;
+                        }
+                    }
+                    if (offerNotTrivia)
                     {
                         result.Add(offerElement);
                     }
                 }
             }
             return result;
-        }
-
-        private void RemoveOffers(List<IWebElement> offerList)
-        {
-            foreach (var offer in offerList)
-            {
-                if (offer.Text.Contains("trivia"))
-                {
-                    offerList.Remove(offer);
-                }
-            }
         }
     }
 }
