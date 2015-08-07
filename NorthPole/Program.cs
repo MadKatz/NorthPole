@@ -27,8 +27,7 @@ namespace NorthPole
                     else
                     {
                         Controller controller = new Controller();
-                        controller.SetUp();
-                        controller.ExecuteAccount(args[1], args[2]);
+                        controller.Start(true, args);
                     }
                 }
                 else
@@ -69,10 +68,10 @@ namespace NorthPole
                 {
                     ExecuteAccountFile();
                 }
-
+                int key = -1;
                 Console.WriteLine("Program complete.");
                 Console.WriteLine("Press any key to quit.");
-                while ((input = Console.ReadLine()) != null)
+                while ((key = Console.Read()) != -1)
                 {
                     Environment.Exit(0);
                 }
@@ -93,22 +92,19 @@ namespace NorthPole
 
         private static void ExecuteSingleAccount()
         {
-            string email;
-            string password;
+            String[] args = new String[3];
             Console.Write("Enter email: ");
-            email = Console.ReadLine();
+            args[1] = Console.ReadLine();
             Console.Write("Enter password: ");
-            password = Console.ReadLine();
+            args[2] = Console.ReadLine();
             Controller controller = new Controller();
-            controller.SetUp();
-            controller.ExecuteAccount(email, password);
+            controller.Start(true, args);
         }
 
         private static void ExecuteAccountFile()
         {
             Controller controller = new Controller();
-            controller.SetUp();
-            controller.Start();
+            controller.Start(false, new String[3]);
         }
 
         private static void DisplayUsage()

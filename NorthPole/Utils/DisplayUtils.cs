@@ -38,50 +38,6 @@ namespace NorthPole.Utils
             return sb.ToString();
         }
 
-        public static String GetAccountStatString(AccountInfo accountInfo, int maxStrLength)
-        {
-            StringBuilder sb = new StringBuilder();
-            int currentRP_string_count = 14;
-            int PC_string_count = 9;
-            int mobile_string_count = 9;
-            int offer_string_count = 10;
-            // Set Account Name
-            sb.Append("# " + accountInfo.AccountName);
-            int maxlength = maxStrLength;
-            maxlength = maxlength - accountInfo.AccountName.Length;
-            sb.Append(GetEmptyString(maxlength));
-            sb.Append(" :");
-            // Set Current RP 
-            int temp = currentRP_string_count - accountInfo.Current_RP.ToString().Length;
-            int num_of_whitespaces = temp / 2;
-            int extra = temp % 2;
-            sb.Append(GetCenteredString(num_of_whitespaces, num_of_whitespaces + extra, accountInfo.Current_RP.ToString()));
-            sb.Append(":");
-            // Set PC
-            temp = PC_string_count - accountInfo.GetPC_String().Length;
-            num_of_whitespaces = temp / 2;
-            extra = temp % 2;
-            sb.Append(GetCenteredString(num_of_whitespaces, num_of_whitespaces + extra, accountInfo.GetPC_String()));
-            sb.Append(":");
-            // Set Mobile
-            temp = mobile_string_count - accountInfo.GetMobile_String().Length;
-            num_of_whitespaces = temp / 2;
-            extra = temp % 2;
-            sb.Append(GetCenteredString(num_of_whitespaces, num_of_whitespaces + extra, accountInfo.GetMobile_String()));
-            sb.Append(":");
-            // Set Offer
-            temp = offer_string_count - accountInfo.GetOffer_String().Length;
-            num_of_whitespaces = temp / 2;
-            extra = temp % 2;
-            sb.Append(GetCenteredString(num_of_whitespaces, num_of_whitespaces + extra, accountInfo.GetOffer_String()));
-            sb.Append(":");
-            // Set Total
-            sb.Append(GetEmptyString(2));
-            sb.Append(accountInfo.GetTotal_String());
-
-            return sb.ToString();
-        }
-
          /// <summary>
         /// Returns longest account name from the account dictionary.
         /// </summary>

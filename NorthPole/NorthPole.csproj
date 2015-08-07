@@ -81,10 +81,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AccountInfo.cs" />
     <Compile Include="Account\AccountContext.cs" />
     <Compile Include="Account\AccountCredits.cs" />
-    <Compile Include="BingBot.cs" />
     <Compile Include="Bot\BotBase.cs" />
     <Compile Include="Bot\DesktopBot.cs" />
     <Compile Include="Constants.cs" />

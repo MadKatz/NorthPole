@@ -8,6 +8,7 @@ using NorthPole.Account;
 using OpenQA.Selenium.Firefox;
 using NorthPole.Helpers;
 using System.Diagnostics;
+using NorthPole.Utils;
 
 namespace NorthPole.Bot
 {
@@ -46,6 +47,7 @@ namespace NorthPole.Bot
         {
             Setup();
             SignIn();
+            BotUtils.Wait(random);
             DoDashboard_Workflow();
             DoSearch_Workflow();
             while (!VerifyWorkDone())
@@ -86,6 +88,7 @@ namespace NorthPole.Bot
         public bool VerifyWorkDone()
         {
             driver.Navigate().GoToUrl(Constants.HOMEPAGE + Constants.DASHBOARDURL);
+            BotUtils.Wait(random);
             DesktopDashboardHelper dbHelper = new DesktopDashboardHelper(driver, AccountContext.AccountCredits);
             dbHelper.SetCurrentCredits();
             if (dbHelper.IsDesktopComplete())
