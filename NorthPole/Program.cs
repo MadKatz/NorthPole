@@ -93,8 +93,7 @@ namespace NorthPole
             String[] args = new String[3];
             Console.Write("Enter email: ");
             args[1] = Console.ReadLine();
-            Console.Write("Enter password: ");
-            args[2] = Console.ReadLine();
+            args[2] = GetPasswordAndDisableClearText();
             Controller controller = new Controller();
             controller.Start(true, args);
         }
@@ -110,6 +109,37 @@ namespace NorthPole
             Console.WriteLine("Usage:");
             Console.WriteLine("'-a' to execute all accounts from account file.");
             Console.WriteLine("'-s [email] [password]' to execute single account with given email and password.");
+        }
+
+        private static String GetPasswordAndDisableClearText()
+        {
+            StringBuilder password = new StringBuilder();
+            Console.Write("Enter password: ");
+            ConsoleKeyInfo keyInfo;
+
+            do
+            {
+                keyInfo = Console.ReadKey(true);
+                // Backspace Should Not Work
+                if (keyInfo.Key != ConsoleKey.Backspace && keyInfo.Key != ConsoleKey.Enter)
+                {
+                    password.Append(keyInfo.KeyChar);
+                    Console.Write("*");
+                }
+                else
+                {
+                    if (keyInfo.Key == ConsoleKey.Backspace && password.Length > 0)
+                    {
+                        password = password.Remove(password.Length - 1, 1);
+                        Console.Write("\b \b");
+                    }
+                }
+            }
+            // Stops Receving Keys Once Enter is Pressed
+            while (keyInfo.Key != ConsoleKey.Enter);
+            Console.WriteLine();
+            Console.WriteLine("Your password is " + password.ToString());
+            return password.ToString();
         }
     }
 }
