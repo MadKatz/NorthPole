@@ -65,13 +65,8 @@ namespace NorthPole.Bot
 
         public void DoOffers()
         {
-            //TODO: move ref of accountContext.AccountCredits to helper instead of ref ref
             OfferHelper offerHelper = new OfferHelper(driver, random);
-            int offerMaxCredits = -1;
-            int offerCredits = -1;
-            offerHelper.DoOffers(ref offerMaxCredits, ref offerCredits);
-            AccountContext.AccountCredits.OfferCredits = offerCredits;
-            AccountContext.AccountCredits.OfferMaxCredits = offerMaxCredits;
+            offerHelper.DoOffers(accountContext.AccountCredits);
         }
 
         public void DoDashboard_Workflow()
@@ -100,6 +95,7 @@ namespace NorthPole.Bot
         public void DoSearch_Workflow()
         {
             driver.Navigate().GoToUrl(Constants.HOMEPAGE);
+            BotUtils.Wait(random);
             SearchHelper searchHelper = new SearchHelper(driver, searchWordList, random);
             int creditsLeftToEarn = accountContext.AccountCredits.PCSearchMaxCredits - accountContext.AccountCredits.PCSearchCredits;
             if (creditsLeftToEarn == 0)

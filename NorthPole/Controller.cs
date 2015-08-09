@@ -14,6 +14,7 @@ namespace NorthPole
     public class Controller
     {
         private Random random;
+        private const int THREE_MINS = 60000 * 3;
 
         public Controller()
         {
@@ -34,7 +35,9 @@ namespace NorthPole
             }
             if (singleaccount)
             {
-                Execute(new AccountContext(args[1], args[2]), searchList);
+                AccountContext aContext = new AccountContext(args[1], args[2]);
+                Execute(aContext, searchList);
+                Console.Write(DisplayUtils.GetEndStatusString(aContext));
             }
             else
             {
@@ -53,11 +56,18 @@ namespace NorthPole
         public void ExecuteAccounts(Dictionary<string, string> accountList, List<string> searchList)
         {
             Console.WriteLine("Executing Desktop Search on all acounts.");
+            int count = 0;
             foreach (var account in accountList)
             {
-                Execute(new AccountContext(account.Key, account.Value), searchList);
-                Console.WriteLine("Sleeping for 3mins.");
-                BotUtils.Wait(60000 * 3);
+                AccountContext aContext = new AccountContext(account.Key, account.Value);
+                Execute(aContext, searchList);
+                Console.Write(DisplayUtils.GetEndStatusString(aContext));
+                count++;
+                if (count != accountList.Count)
+                {
+                    Console.WriteLine("Sleeping for 3mins. \n");
+                    BotUtils.Wait(THREE_MINS);
+                }
             }
         }
 

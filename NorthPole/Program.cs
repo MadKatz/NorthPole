@@ -38,9 +38,10 @@ namespace NorthPole
             }
             else
             {
+                //move to displayutils?
                 string input = "-1";
                 bool valid_input = false;
-                Console.WriteLine("Project NorthPole: Bingbot v1.0");
+                Console.WriteLine("Project NorthPole: Bingbot " + Constants.VERSION);
                 Console.WriteLine("Usage:");
                 Console.WriteLine("Enter '1' to execute a single account.");
                 Console.WriteLine("Enter '2' to all accounts from account file.");
@@ -68,13 +69,10 @@ namespace NorthPole
                 {
                     ExecuteAccountFile();
                 }
-                int key = -1;
                 Console.WriteLine("Program complete.");
                 Console.WriteLine("Press any key to quit.");
-                while ((key = Console.Read()) != -1)
-                {
-                    Environment.Exit(0);
-                }
+                ConsoleKeyInfo key = Console.ReadKey();
+                Environment.Exit(0);
             }
         }
 

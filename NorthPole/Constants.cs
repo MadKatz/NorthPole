@@ -8,6 +8,7 @@ namespace NorthPole
 {
     static class Constants
     {
+        public const string VERSION = "v1.7";
         public const string SIGNINURL = "https://www.bing.com/rewards";
         public const string HOMEPAGE = "http://www.bing.com/";
         public const string DASHBOARDURL = "rewards/dashboard";

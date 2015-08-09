@@ -1,6 +1,7 @@
 ﻿using OpenQA.Selenium;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,7 +18,14 @@ namespace NorthPole.Utils
 
         public static void Wait(int value_in_ms)
         {
-            System.Threading.Thread.Sleep(value_in_ms);
+            try
+            {
+                System.Threading.Thread.Sleep(value_in_ms);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+            }
         }
 
         public static bool HasElement(IWebElement element, By by)
@@ -28,7 +36,7 @@ namespace NorthPole.Utils
                 element.FindElement(by);
                 result = true;
             }
-            catch (Exception NoSuchElementException)
+            catch (NoSuchElementException ex)
             {
                 result = false;
             }

@@ -66,6 +66,8 @@ namespace NorthPole.Account
             MobileSearchCredits = -1;
             PCSearchCredits = -1;
             PCSearchMaxCredits = -1;
+            OfferCredits = -1;
+            OfferMaxCredits = -1;
         }
     }
 }

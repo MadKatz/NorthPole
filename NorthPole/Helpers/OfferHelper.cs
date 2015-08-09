@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using NorthPole.Utils;
+using NorthPole.Account;
 
 namespace NorthPole.Helpers
 {
@@ -24,15 +25,16 @@ namespace NorthPole.Helpers
         }
 
 
-        public void DoOffers(ref int max_offers, ref int offer_count)
+        public void DoOffers(AccountCredits accontCredits)
         {
             string mainWinHandle = driver.CurrentWindowHandle.ToString();
             List<IWebElement> offerList = GetAvailableOffers();
+            int offer_count = 0;
             // While there are active offers
             // Do a offer
             // refresh page
             // refresh offer list
-            max_offers = offerList.Count;
+            accontCredits.OfferMaxCredits = offerList.Count;
             if (offerList.Count == 0)
             {
                 Debug.WriteLine("Failed to find any offers.");
@@ -56,6 +58,7 @@ namespace NorthPole.Helpers
                 driver.Navigate().Refresh();
                 offerList = GetAvailableOffers();
             }
+            accontCredits.OfferCredits = offer_count;
         }
 
         private List<IWebElement> GetAvailableOffers()
