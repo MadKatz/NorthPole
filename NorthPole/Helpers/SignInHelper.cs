@@ -14,7 +14,7 @@ namespace NorthPole.Helpers
         protected String emailBoxName = "loginfmt";
         protected String passwordBoxname = "passwd";
         protected String loginButtonID = "idSIButton9";
-        protected String mobileSignInButtonClass = "white";
+        protected String mobileSignInButtonRef = "/rewards/signin";
 
         public SignInHelper(IWebDriver driver, String email, String password, bool mobile)
             : base(driver, email, password, mobile)
@@ -46,7 +46,7 @@ namespace NorthPole.Helpers
 
         public void GoToLoginPageMobile()
         {
-            driver.FindElement(By.ClassName(mobileSignInButtonClass)).Click();
+            //DONOTHING
         }
 
         public void Login()

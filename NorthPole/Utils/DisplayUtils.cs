@@ -9,28 +9,34 @@ namespace NorthPole.Utils
 {
     public static class DisplayUtils
     {
+        private const String INCOMPLETE = "Incomplete";
+        private const String COMPLETE = "Complete";
+
         public static String GetEndStatusString(AccountContext accountContext)
         {
             StringBuilder sb = new StringBuilder();
             AccountCredits aCredits = accountContext.AccountCredits;
-            sb.AppendLine(accountContext.Email + " - Complete");
+            sb.AppendLine(accountContext.Email + " - " + COMPLETE);
             sb.AppendLine("Credits: " + aCredits.CurrentCredits);
-            sb.AppendLine("Offer Status: " + aCredits.OfferCredits + " / " + aCredits.OfferMaxCredits + " - " + getCompletedString(aCredits.OfferCredits));
-            sb.AppendLine("Desktop Status: " + aCredits.PCSearchCredits + " / " + aCredits.PCSearchMaxCredits + " - " + getCompletedString(aCredits.OfferCredits));
-            sb.AppendLine("Mobile Status: " + aCredits.MobileSearchCredits + " / " + aCredits.MobileSearchMaxCredits + " - " + getCompletedString(aCredits.OfferCredits) + "\n");
+            sb.AppendLine("Offer Status: " + GetStatusString(aCredits.OfferCredits, aCredits.OfferMaxCredits));
+            sb.AppendLine("Desktop Status: " + GetStatusString(aCredits.PCSearchCredits, aCredits.PCSearchMaxCredits));
+            sb.AppendLine("Mobile Status: " + GetStatusString(aCredits.MobileSearchCredits, aCredits.MobileSearchMaxCredits) + "\n");
             return sb.ToString();
         }
 
-        private static String getCompletedString(int credit)
+        private static String GetStatusString(int currentCredits, int maxCredits)
         {
-            if (credit == -1)
+            String completedString = null;
+            if (maxCredits == -1)
             {
-                return "Incomplete";
+                completedString = INCOMPLETE;
             }
             else
             {
-                return "Complete";
+                completedString = currentCredits == maxCredits ? COMPLETE : INCOMPLETE;
             }
+            String result  = currentCredits + " / " + maxCredits + " - " + completedString;
+            return result;
         }
     }
 

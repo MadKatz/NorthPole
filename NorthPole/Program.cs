@@ -138,7 +138,6 @@ namespace NorthPole
             // Stops Receving Keys Once Enter is Pressed
             while (keyInfo.Key != ConsoleKey.Enter);
             Console.WriteLine();
-            Console.WriteLine("Your password is " + password.ToString());
             return password.ToString();
         }
     }

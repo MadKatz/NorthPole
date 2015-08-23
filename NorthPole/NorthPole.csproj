@@ -71,13 +71,13 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="WebDriver, Version=2.45.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="WebDriver, Version=2.47.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\Selenium.WebDriver.2.45.0\lib\net40\WebDriver.dll</HintPath>
+      <HintPath>..\packages\Selenium.WebDriver.2.47.0\lib\net40\WebDriver.dll</HintPath>
     </Reference>
-    <Reference Include="WebDriver.Support, Version=2.45.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="WebDriver.Support, Version=2.47.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\Selenium.Support.2.45.0\lib\net40\WebDriver.Support.dll</HintPath>
+      <HintPath>..\packages\Selenium.Support.2.47.0\lib\net40\WebDriver.Support.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -85,10 +85,12 @@
     <Compile Include="Account\AccountCredits.cs" />
     <Compile Include="Bot\BotBase.cs" />
     <Compile Include="Bot\DesktopBot.cs" />
+    <Compile Include="Bot\MobileBot.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="Controller.cs" />
     <Compile Include="Helpers\DesktopDashboardHelper.cs" />
     <Compile Include="Helpers\DashboardHelperBase.cs" />
+    <Compile Include="Helpers\MobileDashboardHelper.cs" />
     <Compile Include="Helpers\OfferHelper.cs" />
     <Compile Include="Helpers\SearchHelper.cs" />
     <Compile Include="Program.cs" />

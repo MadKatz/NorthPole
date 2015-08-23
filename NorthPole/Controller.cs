@@ -31,31 +31,34 @@ namespace NorthPole
             {
                 Debug.WriteLine(e.Message);
                 Console.WriteLine("Failed to load account file. Aborting.");
-                return;
+                throw e;
             }
             if (singleaccount)
             {
-                AccountContext aContext = new AccountContext(args[1], args[2]);
-                Execute(aContext, searchList);
-                Console.Write(DisplayUtils.GetEndStatusString(aContext));
+                Dictionary<string, string> accountList = new Dictionary<string, string>();
+                accountList.Add(args[1], args[2]);
+                ExecuteAccounts(accountList, searchList);
             }
             else
             {
+                Dictionary<string, string> accounts = null;
                 try
                 {
-                    Dictionary<string, string> accounts = LoadAccounts(Constants.ACCOUNTFILE);
-                    ExecuteAccounts(accounts, searchList);
+                    accounts = LoadAccounts(Constants.ACCOUNTFILE);
                 }
                 catch (Exception e)
                 {
                     Debug.WriteLine(e.Message);
                     Console.WriteLine("Failed to load account file. Aborting.");
+                    throw e;
                 }
+                ExecuteAccounts(accounts, searchList);
             }
         }
         public void ExecuteAccounts(Dictionary<string, string> accountList, List<string> searchList)
         {
-            Console.WriteLine("Executing Desktop Search on all acounts.");
+            int numAccounts = accountList.Count;
+            Console.WriteLine("Executing Desktop + Mobile Search on " + numAccounts + " acounts." + "\n");
             int count = 0;
             foreach (var account in accountList)
             {
@@ -65,7 +68,7 @@ namespace NorthPole
                 count++;
                 if (count != accountList.Count)
                 {
-                    Console.WriteLine("Sleeping for 3mins. \n");
+                    Console.WriteLine("Sleeping for 3 minutes before starting next account. \n");
                     BotUtils.Wait(THREE_MINS);
                 }
             }
@@ -74,14 +77,34 @@ namespace NorthPole
         private void Execute(AccountContext accountContext, List<string> searchList)
         {
             DesktopBot db = new DesktopBot(accountContext, searchList, random);
+            MobileBot mb = new MobileBot(accountContext, searchList, random);
             try
             {
                 db.StartBot();
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e.Message);
                 Console.WriteLine("Error occurred while executing Desktopbot.");
+                Console.WriteLine(e.Message);
+            }
+            bool mobilesearch_LessThenMax = accountContext.AccountCredits.MobileSearchCredits < accountContext.AccountCredits.MobileSearchMaxCredits ? true : false;
+            bool invalidCredits = accountContext.AccountCredits.MobileSearchCredits == -1 ? true : false;
+            if (invalidCredits == false)
+            {
+                invalidCredits = accountContext.AccountCredits.MobileSearchMaxCredits == -1 ? true : false;
+            }
+
+            if (mobilesearch_LessThenMax || invalidCredits)
+            {
+                try
+                {
+                    mb.StartBot();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Error occurred while executing Mobilebot.");
+                    Console.WriteLine(e.Message);
+                }
             }
         }
 

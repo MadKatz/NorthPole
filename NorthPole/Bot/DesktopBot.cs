@@ -14,28 +14,17 @@ namespace NorthPole.Bot
 {
     public class DesktopBot : BotBase
     {
-        protected Random random;
-        protected List<string> searchWordList;
-        private AccountContext accountContext;
-
-        public AccountContext AccountContext
-        {
-            get { return accountContext; }
-            set { accountContext = value; }
-        }
 
         public DesktopBot(AccountContext accountContext, List<string> searchWordList, Random random)
-            : base()
+            : base(accountContext, searchWordList, random)
         {
-            this.accountContext = accountContext;
-            this.searchWordList = searchWordList;
-            this.random = random;
+            mobile = false;
         }
 
         public override void Setup()
         {
             driver = new FirefoxDriver();
-            driver.Navigate().GoToUrl(Constants.SIGNINURL);
+            driver.Navigate().GoToUrl(Constants.DESKTOP_SIGNIN_URL);
         }
 
         public override void TearDown()
@@ -57,16 +46,10 @@ namespace NorthPole.Bot
             TearDown();
         }
 
-        public void SignIn()
-        {
-            SignInHelper signInHelper = new SignInHelper(driver, accountContext.Email, accountContext.Password, false);
-            signInHelper.SignIn();
-        }
-
         public void DoOffers()
         {
             OfferHelper offerHelper = new OfferHelper(driver, random);
-            offerHelper.DoOffers(accountContext.AccountCredits);
+            offerHelper.DoOffers(AccountContext.AccountCredits);
         }
 
         public void DoDashboard_Workflow()
@@ -76,8 +59,11 @@ namespace NorthPole.Bot
             dbHelper.IsMobileComplete();
             DoOffers();
             if (dbHelper.IsDesktopComplete())
-                throw new Exception("Max PC search credits reached.");
-            dbHelper.SetCreditsForToday(false);
+            {
+                TearDown();
+                throw new Exception("Max PC search credits reached. \n");
+            }
+            dbHelper.SetCreditsForToday(mobile);
         }
 
         public bool VerifyWorkDone()
@@ -88,21 +74,16 @@ namespace NorthPole.Bot
             dbHelper.SetCurrentCredits();
             if (dbHelper.IsDesktopComplete())
                 return true;
-            dbHelper.SetCreditsForToday(false);
+            dbHelper.SetCreditsForToday(mobile);
             return false;
         }
 
         public void DoSearch_Workflow()
         {
+            int creditsLeftToEarn = CheckCreditsLeftToEarn();
             driver.Navigate().GoToUrl(Constants.HOMEPAGE);
             BotUtils.Wait(random);
             SearchHelper searchHelper = new SearchHelper(driver, searchWordList, random);
-            int creditsLeftToEarn = accountContext.AccountCredits.PCSearchMaxCredits - accountContext.AccountCredits.PCSearchCredits;
-            if (creditsLeftToEarn == 0)
-            {
-                Debug.WriteLine("accountContext.AccountCredits.PCSearchMaxCredits - accountContext.AccountCredits.PCSearchCredits = 0");
-                throw new Exception("No credits left to earn.");
-            }
             bool needNewSearch = true;
             while (searchHelper.SearchCounter < Constants.SEARCHTOPOINTRATIO * creditsLeftToEarn)
             {
@@ -111,11 +92,23 @@ namespace NorthPole.Bot
                     searchHelper.DoSearch();
                     needNewSearch = false;
                 }
-                if (!searchHelper.DoRelatedSearch(false))
+                if (!searchHelper.DoRelatedSearch(mobile))
                 {
                     needNewSearch = true;
                 }                
             }
+        }
+
+        private int CheckCreditsLeftToEarn()
+        {
+            int creditsLeftToEarn = AccountContext.AccountCredits.PCSearchMaxCredits - AccountContext.AccountCredits.PCSearchCredits;
+            if (creditsLeftToEarn == 0)
+            {
+                TearDown();
+                Debug.WriteLine("accountContext.AccountCredits.PCSearchMaxCredits - accountContext.AccountCredits.PCSearchCredits = 0");
+                throw new Exception("No credits left to earn. \n");
+            }
+            return creditsLeftToEarn;
         }
     }
 }

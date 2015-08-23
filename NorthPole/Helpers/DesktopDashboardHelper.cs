@@ -13,28 +13,16 @@ namespace NorthPole.Helpers
 {
     public class DesktopDashboardHelper : DashboardHelperBase
     {
-        private AccountCredits accountCredits;
-
-        public AccountCredits AccountCredits
-        {
-            get { return accountCredits; }
-            set { accountCredits = value; }
-        }
         protected String checkmarkXPATH = "//div[contains(@class, 'check close-check dashboard-sprite')]";
         protected String userStatusID = "user-status";
         protected String creditsLeftClass = "credits";
         protected String pcSearch = "PC search";
-        protected String mobileSearch = "Moible search";
+        protected String mobileSearch = "Mobile search";
 
 
-        public DesktopDashboardHelper(IWebDriver driver, AccountCredits accountCredits) : base(driver)
+        public DesktopDashboardHelper(IWebDriver driver, AccountCredits accountCredits)
+            : base(driver, accountCredits)
         {
-            AccountCredits = accountCredits;
-        }
-
-        public AccountCredits GetAccountCredits()
-        {
-            return AccountCredits;
         }
 
         public void SetCurrentCredits()
@@ -42,7 +30,7 @@ namespace NorthPole.Helpers
             IWebElement userStatusContainer = driver.FindElement(By.Id(userStatusID));
             IWebElement creditsLeftElement = userStatusContainer.FindElement(By.ClassName(creditsLeftClass));
             String creditsLeft = creditsLeftElement.Text;
-            accountCredits.CurrentCredits = Int32.Parse(creditsLeft);
+            AccountCredits.CurrentCredits = Int32.Parse(creditsLeft);
         }
 
         public bool IsDesktopComplete()
@@ -89,7 +77,7 @@ namespace NorthPole.Helpers
                         String maxCreditString = element.FindElement(By.ClassName("progress")).Text.ToString();
                         String[] creditsString = Regex.Split(maxCreditString, "of");
                         AccountCredits.MobileSearchCredits = int.Parse(creditsString[0]);
-                        AccountCredits.MobileSearchMaxCredits = ParseCreditsString(creditsString[1]);
+                        AccountCredits.MobileSearchMaxCredits = BotUtils.GetIntegerFromString(creditsString[1]);
                     }
                 }
             }
@@ -111,7 +99,7 @@ namespace NorthPole.Helpers
                         String maxCreditString = element.FindElement(By.ClassName("progress")).Text.ToString();
                         String[] creditsString = Regex.Split(maxCreditString, "of");
                         AccountCredits.PCSearchCredits = int.Parse(creditsString[0]);
-                        AccountCredits.PCSearchMaxCredits = ParseCreditsString(creditsString[1]);
+                        AccountCredits.PCSearchMaxCredits = BotUtils.GetIntegerFromString(creditsString[1]);
                         return;
                     }
                 }
@@ -121,31 +109,17 @@ namespace NorthPole.Helpers
 
         public void SetCompletedSearchCredits(String credits, bool mobile)
         {
-            int parsedCredits = ParseCreditsString(credits);
+            int parsedCredits = BotUtils.GetIntegerFromString(credits);
             if (mobile)
             {
-                accountCredits.MobileSearchCredits = parsedCredits;
-                accountCredits.MobileSearchMaxCredits = parsedCredits;
+                AccountCredits.MobileSearchCredits = parsedCredits;
+                AccountCredits.MobileSearchMaxCredits = parsedCredits;
             }
             else
             {
-                accountCredits.PCSearchCredits = parsedCredits;
-                accountCredits.PCSearchMaxCredits = parsedCredits;
+                AccountCredits.PCSearchCredits = parsedCredits;
+                AccountCredits.PCSearchMaxCredits = parsedCredits;
             }
-        }
-        private int ParseCreditsString(String csstr)
-        {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < csstr.Count(); i++)
-            {
-                if (char.IsDigit(csstr[i]))
-                {
-                    sb.Append(csstr[i]);
-                }
-            }
-            int temp = -1;
-            int.TryParse(sb.ToString(), out temp);
-            return temp;
         }
     }
 }

@@ -42,5 +42,20 @@ namespace NorthPole.Utils
             }
             return result;
         }
+
+        public static int GetIntegerFromString(String str)
+        {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < str.Count(); i++)
+            {
+                if (char.IsDigit(str[i]))
+                {
+                    sb.Append(str[i]);
+                }
+            }
+            int temp = -1;
+            int.TryParse(sb.ToString(), out temp);
+            return temp;
+        }
     }
 }
